@@ -18,6 +18,9 @@ v0に渡す入力は以下のみ（他は渡さない）。
 - `.kiro/specs/<feature>/requirements.md`
 - `.kiro/specs/<feature>/design.md`（Architecture ResponsibilitiesのBFF仕様が埋まっていること）
 - `packages/contracts/src/bff`（DTO / errors / enums）
+- `apps/web/src/shared/ui`（Design System SSoT）
+- `apps/web/src/shared/shell`（App Shell SSoT）
+- `apps/web/src/shared/navigation`（Menu/Route/Permission SSoT）
 ※ design.mdのBFF仕様が未記入なら生成禁止（tasksのGateと同じ）
 
 ## 3. モック→BFF切替の2段階方式

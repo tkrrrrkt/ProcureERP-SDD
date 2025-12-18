@@ -6,8 +6,7 @@ Enterprise Performance Management (EPM) SaaS
 
 ## 1. 本ファイルの位置づけ
 
-本 structure.md は、本EPM SaaSにおける
-**リポジトリ構造・責務分離・Single Source of Truth（SSoT）の配置ルール**を定義する。
+本 structure.md は、本EPM SaaSにおける **リポジトリ構造・責務分離・Single Source of Truth（SSoT）の配置ルール** を定義する。
 
 * tech.md が「技術憲法」であるのに対し、本ファイルは「構造憲法」である
 * すべての仕様（Spec）・設計（Design）・実装（Code）は、本構造定義に従う
@@ -28,7 +27,7 @@ Enterprise Performance Management (EPM) SaaS
 ## 3. リポジトリ全体構成（論理）
 
 > **NOTE**: v0生成物は「一次格納（隔離）」→「受入チェック」→「移植して採用」の3段階。
-> いきなりapps/web/srcへ混入させない。
+> いきなり apps/web/src へ混入させない。
 
 repo/                                 # ← プロジェクトルート（Git Repository Root）
 ├─ .kiro/                             # SDD / CCSDD 中枢（仕様SSoT）
@@ -49,21 +48,16 @@ repo/                                 # ← プロジェクトルート（Git Re
 ├─ packages/
 │  ├─ contracts/                      # API / UI / AI 共通の契約SSoT（境界の正本）
 │  │  ├─ src/
-│  │  │  ├─ api/                      # Domain API 契約（BFF → API）
+│  │  │  ├─ api/                      # Domain API 契約（BFF → API）※ UI参照禁止
 │  │  │  │  ├─ dto/
 │  │  │  │  ├─ enums/
 │  │  │  │  └─ errors/
-│  │  │  │    ※ UI参照禁止
-│  │  │  │
-│  │  │  ├─ bff/                      # BFF 契約（UI → BFF）
+│  │  │  ├─ bff/                      # BFF 契約（UI → BFF）※ UI参照OK（唯一の契約）
 │  │  │  │  ├─ dto/
 │  │  │  │  ├─ enums/
 │  │  │  │  └─ errors/
-│  │  │  │    ※ UI参照OK（唯一の契約）
-│  │  │  │
 │  │  │  ├─ read-models/              # AI入力・参照専用モデル（SSoT補助）
 │  │  │  └─ shared/                   # 共通定義（最小限・慎重に追加）
-│  │  │
 │  │  └─ index.ts
 │  │
 │  └─ db/                             # DBスキーマ・RLS・Migration（正本）
@@ -86,23 +80,48 @@ repo/                                 # ← プロジェクトルート（Git Re
 │  │
 │  └─ web/                            # Frontend Web（Next.js）
 │     ├─ _v0_drop/                    # ★ v0一次格納（隔離ゾーン）
-│     │  └─ <context>/<feature>/
-│     │     ├─ PROMPT.md              # v0投入プロンプト
-│     │     ├─ OUTPUT.md              # v0出力メモ
-│     │     └─ src/                   # v0生成物（未採用）
+│     │  ├─ <context>/<feature>/
+│     │  │  ├─ PROMPT.md              # v0投入プロンプト
+│     │  │  ├─ OUTPUT.md              # v0出力メモ
+│     │  │  └─ src/                   # v0生成物（未採用）
+│     │  └─ shared/                   # ★ 横串（Shell/UI/Navigation）用のv0隔離ゾーン
+│     │     ├─ shell/<name>/
+│     │     │  ├─ PROMPT.md
+│     │     │  ├─ OUTPUT.md
+│     │     │  └─ src/
+│     │     ├─ ui/<name>/
+│     │     │  ├─ PROMPT.md
+│     │     │  ├─ OUTPUT.md
+│     │     │  └─ src/
+│     │     └─ navigation/<name>/
+│     │        ├─ PROMPT.md
+│     │        ├─ OUTPUT.md
+│     │        └─ src/
 │     │
 │     └─ src/
 │        ├─ app/                      # ルーティング（薄い）
 │        ├─ features/                 # Feature単位の実装本体
 │        │  └─ <context>/<feature>/
-│        │     ├─ ui/                 # 画面・部品
-│        │     ├─ api/                # BffClient / Mock
+│        │     ├─ ui/                 # 画面・部品（Feature固有）
+│        │     ├─ api/                # BffClient / Mock / Http（差し替え点）
 │        │     ├─ hooks/              # server state
 │        │     ├─ validators/         # 入力制約
 │        │     └─ state/              # 入力系状態（必要な場合のみ）
 │        │
-│        └─ shared/                   # 共通UI基盤
-│           ├─ ui/                    # design-system / components / tokens
+│        └─ shared/                   # ★ 横串SSoT（共通UI基盤の正本）
+│           ├─ ui/                    # Design System SSoT（tokens/components/patterns）
+│           │  ├─ tokens/
+│           │  ├─ components/
+│           │  ├─ patterns/
+│           │  └─ README.md
+│           ├─ shell/                 # App Shell SSoT（Layout/Header/Sidebar/Providers）
+│           │  ├─ AppShell.tsx
+│           │  ├─ providers/
+│           │  └─ layout/
+│           ├─ navigation/            # Navigation/Menu SSoT（IA/Route/Permission）
+│           │  ├─ menu.ts
+│           │  ├─ routes.ts
+│           │  └─ permissions.ts
 │           ├─ api/                   # fetch基盤 / エラー表示
 │           ├─ auth/                  # Clerk薄い連携
 │           └─ utils/
@@ -118,6 +137,7 @@ repo/                                 # ← プロジェクトルート（Git Re
 │
 └─ infra/                             # CI/CD・デプロイ・環境定義
 
+---
 
 ## 4. SSoT（Single Source of Truth）マップ
 
@@ -132,8 +152,11 @@ repo/                                 # ← プロジェクトルート（Git Re
 | 共通定義（最小限）                         | `packages/contracts/src/shared`                                          |
 | AI入力用 Read Model                  | `packages/contracts/src/read-models`                                     |
 | DBスキーマ・RLS                        | `packages/db`                                                            |
-| 意思決定履歴                            | `docs/adr`                                                               |
+| 意思決定履歴（ADR）                       | `docs/adr`                                                               |
 | v0運用ルール/雛形                        | `.kiro/steering/v0-workflow.md` / `.kiro/steering/v0-prompt-template.md` |
+| **Design System（横串）**             | `apps/web/src/shared/ui`                                                 |
+| **App Shell（横串）**                 | `apps/web/src/shared/shell`                                              |
+| **Navigation/Menu（横串）**           | `apps/web/src/shared/navigation`                                         |
 
 SSoTを複製・再定義することは禁止する。
 **正本は常に仕様側にあり、実装は従属する。**
@@ -142,7 +165,7 @@ SSoTを複製・再定義することは禁止する。
 
 ## 5. EPMドメイン構造（Contextの考え方）
 
-Contextとは、EPMにおける**業務的・意味的な境界**である。
+Contextとは、EPMにおける **業務的・意味的な境界** である。
 
 > 本トライアルでは、まず以下3系統を代表として扱う：
 >
@@ -150,7 +173,7 @@ Contextとは、EPMにおける**業務的・意味的な境界**である。
 > * transactions（入力・トランザクション系）
 > * reporting（照会・レポート系）
 >
-> 将来スケール時は、planning/actuals/kpi-analytics/close-control/integration などへ拡張する。
+> 将来スケール時は planning/actuals/kpi-analytics/close-control/integration などへ拡張する。
 
 ### 想定Context（代表）
 
@@ -290,29 +313,6 @@ apps/bff/src/
 * contracts を唯一の型定義として利用する
 * v0 は UI叩き台用途に限定し、SSoTとはしない
 
-### apps/web 推奨構造
-
-apps/web/
-├─ _v0_drop/                               # v0一次格納（隔離ゾーン）
-│  └─ <context>/<feature>/
-│     ├─ PROMPT.md                         # v0投入プロンプト
-│     ├─ OUTPUT.md                         # v0出力メモ
-│     └─ src/                              # v0生成物
-└─ src/
-├─ app/                                 # ルーティング（薄い）
-├─ features/                            # 仕様と対応する実装本体
-│  └─ <context>/<feature>/
-│     ├─ ui/                             # 画面・部品
-│     ├─ api/                            # BffClient/Mock/Http（差し替え点）
-│     ├─ hooks/                          # server state取得
-│     ├─ validators/                     # 入力の最小制約
-│     └─ state/                          # 入力系（必要なFeatureのみ）
-└─ shared/                              # デザインシステム・共通基盤
-├─ ui/                                # components/patterns/forms/tokens
-├─ api/                               # fetch基盤・エラー表示基盤
-├─ auth/                              # Clerk薄い連携（UI側）
-└─ utils/
-
 ### Web状態管理（採用スタック）
 
 * Server State（API由来）：TanStack Query
@@ -323,11 +323,41 @@ apps/web/
 
 ---
 
-## 13. v0一次格納（隔離）と受入チェック（必須）
+## 13. 横串SSoT（App Shell / Navigation / Design System）
+
+EPM SaaSは Feature（機能画面）単体では成立しない。
+「製品として一貫した体験」を担保する横串要素を、SSoTとして明示的に管理する。
+
+### 13.1 正本（SSoT）の置き場（非交渉）
+
+apps/web/src/shared/ は “横串の正本” であり、Featureは必ずこれを参照する。
+Feature内で独自のUI規約・ナビ規約を定義してはならない。
+
+* `apps/web/src/shared/ui` … Design System SSoT（tokens/components/patterns）
+* `apps/web/src/shared/shell` … App Shell SSoT（Layout/Header/Sidebar/Providers）
+* `apps/web/src/shared/navigation` … Navigation/Menu SSoT（IA/Route/Permission）
+
+### 13.2 Featureとの接続点（必須）
+
+* Featureの入口（画面遷移）は必ず `shared/navigation/menu.ts` に登録されること
+* Featureのページは App Shell 上でレンダリングされること
+* Feature UIは `shared/ui` の components/patterns を優先して利用すること
+
+### 13.3 v0生成物の扱い（横串も同じ）
+
+v0生成は Feature と同様に隔離ゾーンへ一次格納し、受入チェック（Guard）後に shared/ へ移植して採用する。
+
+* `apps/web/_v0_drop/shared/shell/...`
+* `apps/web/_v0_drop/shared/ui/...`
+* `apps/web/_v0_drop/shared/navigation/...`
+
+---
+
+## 14. v0一次格納（隔離）と受入チェック（必須）
 
 ### 一次格納ルール
 
-* v0成果物は `apps/web/_v0_drop/<context>/<feature>/` に格納する
+* v0成果物は `apps/web/_v0_drop/...` に格納する
 * 直接 `apps/web/src` に投入しない（差分追跡と受入検査のため）
 
 ### 受入チェック（最低限）
@@ -339,12 +369,13 @@ apps/web/
 
 ### 移植ルール
 
-* `_v0_drop/.../src` → `apps/web/src/features/<context>/<feature>/ui` へ移植して採用
+* Feature: `_v0_drop/<context>/<feature>/src` → `apps/web/src/features/<context>/<feature>/...` へ移植して採用
+* Shared: `_v0_drop/shared/.../src` → `apps/web/src/shared/...` へ移植して採用
 * 移植後に不要なv0固有設定は除去し、プロジェクト標準へ整形する
 
 ---
 
-## 14. ADR（Architecture Decision Record）
+## 15. ADR（Architecture Decision Record）
 
 * 構造・例外・技術選定の理由を記録する
 * 「なぜそうしたか」を将来に残す
@@ -352,7 +383,7 @@ apps/web/
 
 ---
 
-## 15. 禁止事項
+## 16. 禁止事項
 
 * SSoTをコード側に複製すること
 * Specを経由しない設計・実装

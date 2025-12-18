@@ -16,6 +16,11 @@
  *  - UI SHOULD reference packages/contracts/src/bff somewhere (to avoid “no-contract UI” drift)
  *    -> Currently treated as FAIL to make the rule explicit. If you want it as WARNING, see NOTE below.
  *
+ * Adds warnings (non-blocking):
+ *  - Base UI-like components must not be created under apps/web/src/features/**
+ *  - Raw Tailwind color literals like bg-[#...] / text-[#...] / border-[#...] should not be used
+ *  - Shell-like components (sidebar/header/layout) should not be created under features/**
+ *
  * NOTE (to make it WARNING instead of FAIL):
  *  - Change push("UI_SHOULD_USE_CONTRACTS_BFF", ...) to console.warn-only and do not exit(1).
  */
@@ -29,6 +34,13 @@ type Violation = {
   line: number;
   message: string;
   snippet?: string;
+};
+
+type Warning = {
+  ruleId: string;
+  file: string;
+  message: string;
+  detail?: string;
 };
 
 const repoRoot = process.cwd();
@@ -106,7 +118,11 @@ function scanFile(fileAbs: string): Violation[] {
 
     // v0 drop should not import contracts/api or call /api
     if (isWebV0Drop) {
-      if (line.includes("packages/contracts/src/api") || /contracts\/src\/api/.test(line) || /['"`]\/api\//.test(line)) {
+      if (
+        line.includes("packages/contracts/src/api") ||
+        /contracts\/src\/api/.test(line) ||
+        /['"`]\/api\//.test(line)
+      ) {
         push("V0_DROP_FORBIDDEN", i, "v0 drop contains forbidden references. Fix before migrating into apps/web/src.");
       }
     }
@@ -124,9 +140,39 @@ function scanFile(fileAbs: string): Violation[] {
 
 function main() {
   const violations: Violation[] = [];
+  const warnings: Warning[] = [];
 
   // Soft check support: does UI reference contracts/bff anywhere?
   let uiReferencesContractsBff = false;
+
+  // WARN rules (Design System / Shell integrity)
+  const BASE_UI_NAMES = new Set([
+    "button.tsx",
+    "input.tsx",
+    "textarea.tsx",
+    "table.tsx",
+    "dialog.tsx",
+    "tabs.tsx",
+    "badge.tsx",
+    "select.tsx",
+    "dropdown-menu.tsx",
+    "popover.tsx",
+    "tooltip.tsx",
+    "checkbox.tsx",
+    "switch.tsx",
+    "radio-group.tsx",
+    "pagination.tsx",
+    "breadcrumb.tsx",
+    "alert.tsx",
+    "alert-dialog.tsx",
+    "toast.tsx",
+    "toaster.tsx",
+    "sonner.tsx",
+  ]);
+
+  const SHELL_LIKE_NAMES = new Set(["sidebar.tsx", "header.tsx", "layout.tsx", "appshell.tsx", "app-shell.tsx"]);
+
+  const RAW_COLOR_LITERAL_RE = /(bg|text|border)-\[#([0-9a-fA-F]{3,8})\]/;
 
   for (const dir of TARGET_DIRS) {
     const abs = path.join(repoRoot, dir);
@@ -143,26 +189,72 @@ function main() {
         if (text.includes("packages/contracts/src/bff") || /contracts\/src\/bff/.test(text)) {
           uiReferencesContractsBff = true;
         }
+
+        // WARN: raw color literals like bg-[#...]
+        if (RAW_COLOR_LITERAL_RE.test(text)) {
+          warnings.push({
+            ruleId: "WARN_RAW_COLOR_LITERAL",
+            file: r,
+            message: "Raw color literal detected (e.g., bg-[#...]). Prefer semantic tokens/classes.",
+            detail: "Use tokens / CSS variables / Tailwind semantic classes (bg-primary, text-muted-foreground, etc.).",
+          });
+        }
+      }
+
+      // WARN: base UI component files accidentally created under features/**
+      if (r.startsWith("apps/web/src/features/")) {
+        const bn = path.basename(r);
+
+        if (BASE_UI_NAMES.has(bn)) {
+          warnings.push({
+            ruleId: "WARN_BASE_UI_UNDER_FEATURES",
+            file: r,
+            message: "Base UI-like component found under features/** (should live in shared/ui/components).",
+            detail: `Move it to apps/web/src/shared/ui/components/${bn} and update Tier policy if needed.`,
+          });
+        }
+
+        // WARN: shell-like components under features/**
+        const bnLower = bn.toLowerCase();
+        if (SHELL_LIKE_NAMES.has(bnLower)) {
+          warnings.push({
+            ruleId: "WARN_SHELL_LIKE_UNDER_FEATURES",
+            file: r,
+            message: "Shell-like component found under features/** (sidebar/header/layout should be in shared/shell).",
+            detail: "Prefer apps/web/src/shared/shell/AppShell.tsx and shared/navigation/menu.ts.",
+          });
+        }
       }
 
       violations.push(...scanFile(f));
     }
   }
 
-  // Soft check (currently treated as FAIL to make it explicit)
+  // Soft check (bootstrap: WARNING)
   if (fs.existsSync(path.join(repoRoot, "apps/web/src")) && !uiReferencesContractsBff) {
-    violations.push({
-      ruleId: "UI_SHOULD_USE_CONTRACTS_BFF",
+    warnings.push({
+      ruleId: "WARN_UI_SHOULD_USE_CONTRACTS_BFF",
       file: "apps/web/src",
-      line: 1,
       message:
-        "UI should reference packages/contracts/src/bff (contracts-first). If UI has no contract usage yet, ignore only in very early bootstrap.",
-      snippet: "",
+        "UI should reference packages/contracts/src/bff (contracts-first). In bootstrap phase this is WARNING. Switch to FAIL after first feature uses BFF DTOs.",
+      detail:
+        "Once a feature is migrated (apps/web/src/features/**) and uses contracts/bff DTOs, upgrade this check to FAIL.",
     });
   }
 
+
   if (violations.length === 0) {
     console.log("✅ Structure Guards: OK (no violations)");
+
+    if (warnings.length) {
+      console.warn("\n⚠️  Structure Guards: warnings (non-blocking)\n");
+      for (const w of warnings) {
+        console.warn(`- [${w.ruleId}] ${w.file} ${w.message}`);
+        if (w.detail) console.warn(`  > ${w.detail}`);
+      }
+      console.warn("");
+    }
+
     process.exit(0);
   }
 
@@ -171,6 +263,16 @@ function main() {
     console.error(`- [${vv.ruleId}] ${vv.file}:${vv.line} ${vv.message}`);
     if (vv.snippet) console.error(`  > ${vv.snippet.trim()}`);
   }
+
+  if (warnings.length) {
+    console.warn("\n⚠️  Structure Guards: warnings (non-blocking)\n");
+    for (const w of warnings) {
+      console.warn(`- [${w.ruleId}] ${w.file} ${w.message}`);
+      if (w.detail) console.warn(`  > ${w.detail}`);
+    }
+    console.warn("");
+  }
+
   process.exit(1);
 }
 
