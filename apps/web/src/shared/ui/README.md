@@ -98,6 +98,7 @@ Use only when feature requirements justify it.
 * hover-card.tsx
 * avatar.tsx
 * input-otp.tsx
+* chart.tsx (Use only with approved chart patterns for dashboards/reports)
 
 ### Tier 3 (Avoid by Default)
 
@@ -105,7 +106,6 @@ Avoid unless there is a clear UX benefit and an approved pattern exists.
 
 * carousel.tsx
 * aspect-ratio.tsx
-* chart.tsx (Use only with a defined chart pattern)
 
 Policy:
 

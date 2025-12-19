@@ -96,25 +96,25 @@ rounded-lg   (0.5rem)   - cards, panels
 rounded-xl   (0.75rem)  - hero sections
 ```
 
-### Available Tier 1 Components (67 components total)
+### Available Components by Tier
 
-**Basic Components:**
+**Tier 1 (Standard / MUST Prefer):**
 - Button, Input, Textarea, Label, Checkbox, Switch, Radio Group, Select
-- Card, Alert, Badge, Separator, Progress, Spinner, Skeleton
+- Card, Alert, Badge, Separator, Spinner, Skeleton
+- Table, Pagination, Tabs, Dialog, Alert Dialog
+- Toast/Toaster/Sonner, Popover, Tooltip
+- Dropdown Menu, Scroll Area, Breadcrumb
 
-**Layout Components:**
-- Table, Pagination, Tabs, Accordion, Collapsible
-- Sheet, Dialog, Drawer, Popover, Hover Card, Tooltip
-
-**Navigation:**
-- Navigation Menu, Menubar, Breadcrumb, Command, Context Menu, Dropdown Menu
-
-**Advanced:**
-- Calendar, Carousel, Chart, Sidebar, Scroll Area, Resizable
-- Form (react-hook-form integration), Toast/Toaster/Sonner
-
-**Composite/Tier 2:**
+**Tier 2 (Allowed / Use When Needed):**
+- Calendar, Sheet, Drawer, Command, Sidebar, Progress
+- Accordion, Collapsible, Navigation Menu, Menubar, Context Menu
+- Resizable, Slider, Hover Card, Avatar, Input OTP
+- **Chart** (for dashboards/reports with approved patterns)
 - Button Group, Input Group, Field, Empty State, KBD, Item
+- Form (react-hook-form integration)
+
+**Tier 3 (Avoid by Default):**
+- Carousel, Aspect Ratio
 
 **Component Import Rules:**
 ```typescript
@@ -245,23 +245,25 @@ You MUST follow these SSoT documents and files:
 
 ### Tier Policy
 
-**Tier 1 - Base Components** (67 components in `apps/web/src/shared/ui/components/`)
-- Button, Input, Card, Table, Dialog, Tabs, Badge, Alert, etc.
+**Tier 1 - Base Components (Standard / MUST Prefer)**
+- Button, Input, Card, Table, Dialog, Tabs, Badge, Alert, Toast, Pagination, etc.
 - **✅ Use these freely in all features**
 - **❌ NEVER recreate these in feature folders**
+- Full list: See `apps/web/src/shared/ui/README.md` Tier 1 section
 
-**Tier 2 - Composite Components** (when needed)
-- DataTable (sortable, paginated table wrapper)
-- SearchInput (debounced search)
-- Form layouts, multi-step wizards
+**Tier 2 - Allowed Components (Use When Needed)**
+- Calendar, Sheet, Drawer, Command, Sidebar, Progress, Accordion, etc.
+- **Chart** (for dashboards/reports with approved patterns)
+- **⚠️ Use only when feature requirements justify it**
 - **⚠️ If you need a Tier 2 component that doesn't exist:**
   - Add it to OUTPUT.md `Missing Shared Component / Pattern` section
   - DO NOT implement it in the feature folder
+- Full list: See `apps/web/src/shared/ui/README.md` Tier 2 section
 
-**Tier 3 - Feature-specific Components**
-- Components with domain-specific logic
-- One-off UI patterns for specific features
-- **✅ OK to create in feature folders**
+**Tier 3 - Avoid by Default**
+- Carousel, Aspect Ratio
+- **❌ Avoid unless there is a clear UX benefit and an approved pattern exists**
+- Full list: See `apps/web/src/shared/ui/README.md` Tier 3 section
 
 ### Component Creation Rules
 
