@@ -14,7 +14,7 @@ Enterprise Performance Management (EPM) SaaS
 
 ---
 
-## 2. 全体構造の基本思想
+## 2. 全体構造の基本思想Iはcontr
 
 * SSoT（正本）は必ず **1か所** に存在させる
 * 仕様（Spec）と実装（Code）を厳密に分離する
@@ -44,6 +44,7 @@ repo/                                 # ← プロジェクトルート（Git Re
 │        ├─ requirements.md           # 要求仕様（EARS / Given-When-Then）
 │        ├─ design.md                 # 設計仕様（Architecture Responsibilities）
 │        └─ tasks.md                  # 実装計画（Gate / 手順 / チェック）
+│        # ※ design.md では DTO=camelCase / DB=snake_case / sortByはDTOキー / Error Policy選択 / Paging正規化（BFF責務）を必ず明記する（省略禁止）
 │
 ├─ packages/
 │  ├─ contracts/                      # API / UI / AI 共通の契約SSoT（境界の正本）
@@ -224,6 +225,19 @@ Featureは **ユーザー価値単位（Vertical Slice）** で定義する。
 Specは **実装より先に存在する**。
 Specが存在しないコードは原則として許可しない。
 
+## 7.1 tasks.md の章順ルール（Contracts-first / MUST）
+
+tasks.md は必ず以下の順で構成する（逸脱禁止）：
+
+1) Decisions（意思決定）
+2) Contracts（bff → api → shared）
+3) DB / Migration / RLS
+4) Domain API（apps/api）
+5) BFF（apps/bff）
+6) UI（apps/web：最後）
+
+目的：DBや実装が先行して契約と不整合になる事故を防止する。
+
 ---
 
 ## 8. Contracts（packages/contracts）の役割
@@ -259,7 +273,9 @@ contracts は、**API・UI・AIを接続する唯一の契約SSoT**である。
 * UI は Domain API を直接呼び出してはならず、必ず BFF を経由する
 * BFF は Read Model / View Model の責務を持つ（ページング/整形/集約）
 * BFF はドメイン権限の最終判断を行わない（最終判断は Domain API）
-* BFF は Domain API エラーを **bff/errorsへ正規化**し、UI契約を安定させる
+* BFF の Error Policy は feature の design.md で **明示的に選択**する（テンプレに従う）
+  - Option A: Pass-through（推奨）= Domain API エラーを原則透過
+  - Option B: Minimal shaping = UI表示に必要な最小整形のみ許可（整形結果は contracts/bff/errors に定義）
 
 ---
 
@@ -354,6 +370,18 @@ v0生成は Feature と同様に隔離ゾーンへ一次格納し、受入チェ
 ---
 
 ## 14. v0一次格納（隔離）と受入チェック（必須）
+
+### v0 二段階運用（Two-Phase / MUST）
+
+- Phase 1（統制テスト）：
+  - 目的：境界/契約/Design System準拠の検証（見た目完成は目的外）
+  - 出力先：`apps/web/_v0_drop/<context>/<feature>/src`
+  - MockBffClientで動作確認（BFF未接続）
+  - `scripts/structure-guards.ts` を必ず通す
+- Phase 2（本実装）：
+  - features へ移植して採用
+  - HttpBffClient 実装・実BFF接続
+  - URL state / debounce / E2E 等はここで追加
 
 ### 一次格納ルール
 

@@ -10,19 +10,19 @@
  *  - UI must NOT call Domain API directly (must call BFF only)
  *  - UI must NOT use fetch() directly except inside feature api/HttpBffClient.ts
  *  - v0 drop must NOT contain forbidden references (contracts/api, /api/)
- *  - BFF must NOT access DB directly (Prisma hints)
+ *  - v0 drop must keep all source files under apps/web/_v0_drop/<context>/<feature>/src/**
+ *  - v0 drop must NOT generate layout.tsx (AppShell is the only shell)
+ *  - BFF must NOT access DB directly (Prisma/DB-client hints)
  *
- * Also checks (soft):
+ * Also checks (soft / bootstrap-friendly):
  *  - UI SHOULD reference packages/contracts/src/bff somewhere (to avoid “no-contract UI” drift)
- *    -> Currently treated as FAIL to make the rule explicit. If you want it as WARNING, see NOTE below.
+ *    -> Currently treated as WARNING. Upgrade to FAIL after first feature uses BFF DTOs.
  *
  * Adds warnings (non-blocking):
  *  - Base UI-like components must not be created under apps/web/src/features/**
  *  - Raw Tailwind color literals like bg-[#...] / text-[#...] / border-[#...] should not be used
  *  - Shell-like components (sidebar/header/layout) should not be created under features/**
- *
- * NOTE (to make it WARNING instead of FAIL):
- *  - Change push("UI_SHOULD_USE_CONTRACTS_BFF", ...) to console.warn-only and do not exit(1).
+ *  - layout.tsx under features/** is discouraged (start as WARN; consider upgrading to FAIL later)
  */
 
 import fs from "node:fs";
@@ -103,7 +103,13 @@ function scanFile(fileAbs: string): Violation[] {
 
     // UI must not call Domain API directly
     if (isWebSrc) {
-      if (/['"`]\/api\//.test(line) || line.includes("apps/api") || /DOMAIN_API/i.test(line)) {
+      // Prefer catching URL-like usage patterns (reduces false positives)
+      const urlLikeApi =
+        /(fetch|axios\.|ky\.|got\.|request\(|new\s+URL\()/.test(line) && /['"`]\/api\//.test(line);
+      const importAppsApi =
+        /^\s*import\s+.*from\s+['"`].*apps\/api/.test(line) || /from\s+['"`].*apps\/api/.test(line);
+
+      if (urlLikeApi || importAppsApi || /DOMAIN_API/i.test(line)) {
         push("UI_NO_DOMAIN_API_DIRECT", i, "UI must NOT call Domain API directly. UI must call BFF only.");
       }
     }
@@ -127,9 +133,13 @@ function scanFile(fileAbs: string): Violation[] {
       }
     }
 
-    // BFF must not access DB directly (Prisma hint)
+    // BFF must not access DB directly (Prisma/DB-client hints)
     if (isBff) {
-      if (/PrismaClient/.test(line) || /from\s+['"`].*prisma/i.test(line)) {
+      const prismaHints =
+        /PrismaClient/.test(line) || /@prisma\/client/.test(line) || /from\s+['"`].*prisma/i.test(line);
+      const otherDbHints = /from\s+['"`](pg|mysql2|typeorm|knex|kysely|drizzle-orm|better-sqlite3)/i.test(line);
+
+      if (prismaHints || otherDbHints) {
         push("BFF_NO_DB_DIRECT", i, "BFF must NOT access DB directly. BFF must call Domain API only.");
       }
     }
@@ -183,6 +193,32 @@ function main() {
       const ext = path.extname(f);
       if (!EXT.has(ext)) continue;
 
+      // FAIL: enforce v0-drop isolation structure
+      // - Only allow source files under apps/web/_v0_drop/<context>/<feature>/src/**
+      if (r.startsWith("apps/web/_v0_drop/")) {
+        if (!/apps\/web\/_v0_drop\/.*\/src\//.test(r)) {
+          violations.push({
+            ruleId: "V0_DROP_OUTSIDE_SRC",
+            file: r,
+            line: 1,
+            message: "v0 drop must place source files under apps/web/_v0_drop/<context>/<feature>/src/** only.",
+            snippet: r,
+          });
+        }
+
+        // FAIL: forbid layout shell generation inside v0 drop
+        const bn = path.basename(r).toLowerCase();
+        if (bn === "layout.tsx") {
+          violations.push({
+            ruleId: "V0_DROP_NO_LAYOUT",
+            file: r,
+            line: 1,
+            message: "Do NOT generate layout.tsx in v0 drop. AppShell is the only shell.",
+            snippet: r,
+          });
+        }
+      }
+
       // detect contracts/bff reference in web/src
       if (r.startsWith("apps/web/src/")) {
         const text = fs.readFileSync(f, "utf8");
@@ -224,6 +260,16 @@ function main() {
             detail: "Prefer apps/web/src/shared/shell/AppShell.tsx and shared/navigation/menu.ts.",
           });
         }
+
+        // WARN: layout.tsx under features/** (start as WARN; consider upgrading to FAIL later)
+        if (bnLower === "layout.tsx") {
+          warnings.push({
+            ruleId: "WARN_FEATURES_NO_LAYOUT",
+            file: r,
+            message: "layout.tsx under features/** is discouraged. Features should not create shells.",
+            detail: "Use shared/shell/AppShell.tsx. Keep routes thin: page.tsx + feature components only.",
+          });
+        }
       }
 
       violations.push(...scanFile(f));
@@ -241,7 +287,6 @@ function main() {
         "Once a feature is migrated (apps/web/src/features/**) and uses contracts/bff DTOs, upgrade this check to FAIL.",
     });
   }
-
 
   if (violations.length === 0) {
     console.log("✅ Structure Guards: OK (no violations)");

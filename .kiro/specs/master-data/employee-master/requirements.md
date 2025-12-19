@@ -1,225 +1,198 @@
-# 社員マスタ要求仕様
+# Requirements Document
 
-## 1. コンテキスト / スコープ
+## Introduction
 
-- **機能名**: 社員マスタ登録（一覧/新規/編集/無効化）
-- **Feature ID**: `master-data/employee-master`
-- **目的**: 本EPM SaaSにおいて、テナントごとの社員情報を管理し、他機能（権限管理や将来の計画・実績入力）の前提となる「社員マスタ」を提供する。
-- **スコープ**:
-  - 社員の登録（Create）
-  - 社員の一覧・検索（Read）
-  - 社員情報の編集（Update）
-  - 社員の無効化（論理削除相当 / Inactivate）
-- **非スコープ**:
-  - 認証基盤（Clerk等）とのアカウント連携・SSO連携
-  - 申請・承認ワークフロー
-  - CSV / Excel 等による一括取込・一括更新
-  - 組織マスタ・ロールマスタとの高度な連動（本Featureでは「参照用のキー」を持つ前提にとどめる）
+本機能は、EPM SaaSにおける社員マスタ（Employee Master）の登録・管理機能を提供する。社員情報の一覧検索、詳細表示、作成、更新、無効化/再有効化を実現し、マルチテナント環境下で安全に運用可能なマスタ管理基盤を構築する。
 
-## 1.5 Decision Tasks（Open Questions / 未確定点）
-以下は design.md で確定し、確定後に本requirementsへ反映する。
+本機能はContracts-first原則に従い、BFFでページング/ソートを正規化し、エラーハンドリングはPass-through方式を採用する。承認機能はMVP外とする。
 
-- [D1] 社員コード（employee_code）の仕様
-  - 形式（文字種・桁数・プレフィックス有無）
-  - 採番（完全手入力 / 自動採番 / 混在）
-  - 変更可否（変更禁止が基本か、例外を許すか）
+## Decisions / Open Questions
 
-- [D2] 社員マスタの「必須項目」最終確定
-  - 氏名の持ち方（姓/名分離 or フルネーム1項目）
-  - 所属組織の扱い（org_id必須か、未所属許容か）
-  - 連絡先（email）を必須にするか任意にするか
+### Decisions
 
-- [D3] 無効化社員の扱い（MVP方針）
-  - 無効社員の編集：MVPでは原則禁止（参照のみ）で良いか
-  - 再有効化（reactivate）はMVP外で良いか
+**D-01**: employeeCode（社員コード）は作成後に変更不可
 
----
+**D-02**: ページングは page/pageSize（default page=1, pageSize=50, max=200）
 
-## 2. 要件一覧（EARS形式）
+**D-03**: default sort = employeeCode asc
 
-※ 各要件IDは後続の design.md / tasks.md / テストケースから参照される。
+**D-04**: organizationKey は nullable、MVPではFK制約なし
 
-### 1. 登録（Create）
+### Open Questions
 
-- **1.1**:  
-  *When* 権限を持つユーザーが社員マスタの「新規登録」操作を行うとき、  
-  *the system shall* 社員コード・氏名（姓/名または氏名フリーフォーマット）・所属組織・在籍ステータス（有効/無効）などの必須項目を入力させ、必須項目がすべて入力されている場合のみ登録を許可する。
+**OQ-04**: 再有効化はMVPに含める → Yes
 
-- **1.2**:  
-  *When* 権限を持つユーザーが既存の社員コードで新規登録を試みたとき、  
-  *the system shall* 当該テナント内で社員コードの一意制約違反として登録を拒否し、ユーザーに分かりやすいエラーを表示する。
+## Functional Requirements (FR) 一覧
 
-- **1.3**:  
-  *When* ユーザーが登録フォームを送信したとき、  
-  *the system shall* tenant_id を含めて社員レコードを保存し、登録処理の結果（成功/失敗）をユーザーに返す。
-  
+本機能の機能要件を以下に列挙する。詳細は各 Requirement を参照のこと。
 
-### 2. 一覧・検索（Read）
+- **FR-LIST-01**: 一覧（ページング/ソート/検索/無効含むオプション） - Requirement 1 参照
+- **FR-LIST-02**: 詳細 - Requirement 2 参照
+- **FR-LIST-03**: 作成 - Requirement 3 参照
+- **FR-LIST-04**: 更新（employeeCode変更不可を含む） - Requirement 4 参照
+- **FR-LIST-05**: 無効化 - Requirement 5 参照
+- **FR-LIST-06**: 再有効化 - Requirement 6 参照
+- **FR-LIST-07**: 権限制御 - Requirement 7 参照
+- **FR-LIST-08**: テナント境界 - Requirement 8 参照
+- **FR-LIST-09**: 監査ログ - Requirement 9 参照
+- **FR-LIST-10**: BFF正規化 - Requirement 10 参照
+- **FR-LIST-11**: Error Pass-through - Requirement 11 参照
+- **FR-LIST-12**: Contracts-first - Requirement 12 参照
+- **FR-LIST-13**: MVP外（承認） - Requirement 13 参照
 
-- **2.1**:  
-  *When* ユーザーが社員マスタ画面を開いたとき、  
-  *the system shall* 当該テナントの社員レコードのみを一覧表示する。
+## Requirements
 
-- **2.2**:  
-  *When* ユーザーが社員名・社員コード・所属組織・在籍ステータスなどの検索条件を指定したとき、  
-  *the system shall* 指定された条件で当該テナント内の社員レコードをフィルタリングして表示する。
+### Requirement 1: 社員マスタ一覧検索・表示
 
-- **2.3**:  
-  *When* ユーザーが一覧画面を閲覧するとき、  
-  *the system shall* デフォルトで「有効な社員」のみを表示し、ユーザーが明示的に切り替えた場合に限り「無効を含む」表示を行う。
+**Objective:** As a 経営企画担当者 or FP&A担当者, I want 社員マスタの一覧を検索・表示できること, so that 社員情報を効率的に確認・参照できる
 
-- **2.4**:
-  *When* ユーザーが社員一覧を閲覧するとき、
-  *the system shall* ソート（既定: 社員コード昇順）およびページング（既定: 50件/ページ等）を提供する。
+#### Acceptance Criteria
 
-### 3. 編集（Update）
+1. When ユーザーが社員マスタ一覧画面にアクセスしたとき, the Employee Master Service shall ページング情報とソート条件に基づいて社員一覧を返却する
+2. When ユーザーが検索条件（社員コード、社員名等）を指定したとき, the Employee Master Service shall 条件に一致する社員のみを返却する
+3. When ユーザーがソート条件（社員コード、社員名等）を指定したとき, the BFF shall ソート条件を正規化し、Domain APIへ伝達する
+4. When ユーザーがページ番号とページサイズを指定したとき, the BFF shall ページング情報を正規化し、Domain APIへ伝達する
+5. While テナント境界が設定されている状態で, the Employee Master Service shall 自テナントの社員のみを返却する
+6. When 無効化された社員が存在する場合, the Employee Master Service shall デフォルトでは有効な社員のみを返却する（フィルタ条件で無効化社員も含めることは可能とする）
 
-- **3.1**:  
-  *When* 権限を持つユーザーが既存社員の編集画面を開いたとき、  
-  *the system shall* 最新の社員情報をフォームに読み込み、変更可能な項目のみ編集させる。
+### Requirement 2: 社員マスタ詳細表示
 
-- **3.2**:  
-  *When* ユーザーが社員情報の編集内容を保存したとき、  
-  *the system shall* 入力値のバリデーションを行い、正しい場合にのみ対象レコードを更新する。
+**Objective:** As a 経営企画担当者 or FP&A担当者, I want 特定の社員の詳細情報を表示できること, so that 社員情報を正確に確認できる
 
-- **3.3**:  
-  *When* ユーザーが社員コードを変更しようとしたとき、  
-  *the system shall* 当該テナント内の一意性を再度検証し、重複がある場合は更新を拒否する。
+#### Acceptance Criteria
 
-### 4. 無効化（Inactivate）
+1. When ユーザーが社員IDを指定して詳細情報を要求したとき, the Employee Master Service shall 該当社員の詳細情報を返却する
+2. If 指定された社員IDが存在しない場合, the Employee Master Service shall 404エラーを返却する
+3. If 指定された社員が他テナントに属する場合, the Employee Master Service shall 404エラーを返却する（存在しないものとして扱う）
+4. When 詳細情報が返却されたとき, the Employee Master Service shall 社員の有効/無効状態を含む完全な情報を返却する
 
-- **4.1**:  
-  *When* 権限を持つユーザーが社員を「無効化」する操作を行うとき、  
-  *the system shall* 社員レコードの「在籍ステータス」や「有効フラグ」を更新することで論理的に無効化し、物理削除は行わない。
+### Requirement 3: 社員マスタ作成
 
-- **4.2**:  
-  *When* 社員が無効化されている場合、  
-  *the system shall* デフォルトの一覧表示や選択肢（ドロップダウン等）からは除外するが、必要に応じて「無効を含めて表示」することで参照できるようにする。
+**Objective:** As a 経営企画担当者 or 管理者, I want 新しい社員情報を登録できること, so that 社員マスタを維持・更新できる
 
-- **4.3**:  
-  *When* 無効化済み社員について編集操作が行われるとき、  
-  *the system shall* 設計で許可された項目（例: 備考、退職日等）のみ編集可能とし、再入社などの取り扱いは本Featureスコープ外とすることを明示する。
+#### Acceptance Criteria
 
-### 5. 権限・認可
+1. When ユーザーが必須項目を入力して社員作成を実行したとき, the Employee Master Service shall 新しい社員レコードを作成し、作成された社員情報を返却する
+2. If 必須項目が未入力の場合, the Employee Master Service shall 422エラーを返却する
+3. If 社員コードが既に同一テナント内で存在する場合, the Employee Master Service shall 409エラーを返却する
+4. When 社員が作成されたとき, the Employee Master Service shall デフォルトで有効状態として作成する
+5. When 社員が作成されたとき, the Employee Master Service shall 作成者情報（user_id）と作成日時を記録する
+6. While テナント境界が設定されている状態で, the Employee Master Service shall 自テナントの社員として作成する
 
-- **5.1**:  
-  *When* 社員マスタ画面へのアクセスリクエストがあるとき、  
-  *the system shall* 当該ユーザーが社員マスタ参照権限（例: `epm.user.read` 相当）を持つ場合にのみ一覧表示を許可する。
+### Requirement 4: 社員マスタ更新
 
-- **5.2**:  
-  *When* 社員の登録・編集・無効化操作がリクエストされたとき、  
-  *the system shall* 当該ユーザーが社員マスタ更新権限（例: `epm.user.update` 相当）を持つ場合にのみ処理を実行し、権限がない場合は処理を拒否する。
+**Objective:** As a 経営企画担当者 or 管理者, I want 既存の社員情報を更新できること, so that 社員情報の変更を反映できる
 
-- **5.3**:
-  *When* ユーザーが参照権限のみを持つ場合、
-  *the system shall* UI上で更新系操作（新規/編集/無効化）を表示しない、または無効化し、APIは権限不十分として拒否する。
+#### Acceptance Criteria
 
-### 6. 監査・履歴
+1. When ユーザーが社員IDと更新内容を指定して更新を実行したとき, the Employee Master Service shall 該当社員情報を更新し、更新後の情報を返却する
+2. If 指定された社員IDが存在しない場合, the Employee Master Service shall 404エラーを返却する
+3. If 指定された社員が他テナントに属する場合, the Employee Master Service shall 404エラーを返却する
+4. If 更新リクエストにemployeeCodeが含まれている場合, the Employee Master Service shall 422エラー（validation error）を返却する（employeeCodeは作成後に変更不可）
+5. If 更新後の社員コードが同一テナント内の他の社員と重複する場合, the Employee Master Service shall 409エラーを返却する
+6. When 社員が更新されたとき, the Employee Master Service shall 更新者情報（user_id）と更新日時を記録する
+7. While テナント境界が設定されている状態で, the Employee Master Service shall 自テナントの社員のみを更新可能とする
 
-- **6.1**:  
-  *When* 社員レコードが新規登録・編集・無効化されたとき、  
-  *the system shall* 「誰が・いつ・何を・どの値からどの値へ」変更したかを特定できる監査情報を保持する。
+### Requirement 5: 社員マスタ無効化
 
-- **6.2**:  
-  *When* 監査ログが記録されるとき、  
-  *the system shall* 最低限 tenant_id / user_id / 対象リソース（社員ID）/ 操作種別（作成・更新・無効化）/ 結果（成功・失敗）を含める。
+**Objective:** As a 経営企画担当者 or 管理者, I want 社員を無効化できること, so that 退職者等の社員を論理削除できる
 
-### 7. マルチテナント
+#### Acceptance Criteria
 
-- **7.1**:  
-  *When* 社員データへアクセスするあらゆる処理が実行されるとき、  
-  *the system shall* 常に tenant_id をスコープとして扱い、他テナントの社員データにアクセスできないようにする。
+1. When ユーザーが社員IDを指定して無効化を実行したとき, the Employee Master Service shall 該当社員を無効状態に変更する
+2. If 指定された社員IDが存在しない場合, the Employee Master Service shall 404エラーを返却する
+3. If 指定された社員が既に無効状態の場合, the Employee Master Service shall 409エラーを返却する
+4. When 社員が無効化されたとき, the Employee Master Service shall 無効化者情報（user_id）と無効化日時を記録する
+5. While テナント境界が設定されている状態で, the Employee Master Service shall 自テナントの社員のみを無効化可能とする
 
-- **7.2**:  
-  *When* 社員レコードが作成・更新されるとき、  
-  *the system shall* tenant_id を必須として保持し、Row Level Security（RLS）の前提を満たす形で保存する。
+### Requirement 6: 社員マスタ再有効化
 
----
+**Objective:** As a 経営企画担当者 or 管理者, I want 無効化された社員を再有効化できること, so that 誤って無効化した社員を復元できる
 
-## 3. 受入条件（Given / When / Then）
+#### Acceptance Criteria
 
-### 1. 社員の新規登録
+1. When ユーザーが無効化された社員IDを指定して再有効化を実行したとき, the Employee Master Service shall 該当社員を有効状態に変更する
+2. If 指定された社員IDが存在しない場合, the Employee Master Service shall 404エラーを返却する
+3. If 指定された社員が既に有効状態の場合, the Employee Master Service shall 409エラーを返却する
+4. When 社員が再有効化されたとき, the Employee Master Service shall 再有効化者情報（user_id）と再有効化日時を記録する
+5. While テナント境界が設定されている状態で, the Employee Master Service shall 自テナントの社員のみを再有効化可能とする
 
-- **AC1-1 正常系（新規社員登録）**  
-  - *Given* 社員マスタ更新権限を持つユーザーがログインしており、社員コード・氏名・所属組織・在籍ステータス「有効」を入力している  
-  - *When* ユーザーが「登録」ボタンを押す  
-  - *Then* システムは当該テナントの社員テーブルに新規レコードを作成し、一覧画面に新規社員が表示される
+### Requirement 7: 権限・認可制御
 
-- **AC1-2 異常系（社員コード重複）**  
-  - *Given* 既に同一テナント内に「E001」という社員コードの社員が存在している  
-  - *When* ユーザーが「E001」を社員コードとして新規登録しようとし、「登録」ボタンを押す  
-  - *Then* システムは登録を拒否し、「社員コードが重複しています」等のエラーメッセージを表示し、既存レコードは変更されない
+**Objective:** As a システム管理者, I want 社員マスタ操作に適切な権限制御を実装すること, so that 不正な操作を防止できる
 
-### 2. 社員一覧・検索
+#### Acceptance Criteria
 
-- **AC2-1 デフォルト一覧**  
-  - *Given* 社員マスタ参照権限を持つユーザーがログインしている  
-  - *When* ユーザーが社員マスタ画面を開く  
-  - *Then* システムは当該テナント内の「有効な社員」のみを社員コード昇順などの既定順序で表示する
+1. When ユーザーが社員マスタ一覧を参照しようとしたとき, the Employee Master Service shall `epm.employee-master.read` 権限をチェックする
+2. When ユーザーが社員マスタ詳細を参照しようとしたとき, the Employee Master Service shall `epm.employee-master.read` 権限をチェックする
+3. When ユーザーが社員マスタを作成しようとしたとき, the Employee Master Service shall `epm.employee-master.create` 権限をチェックする
+4. When ユーザーが社員マスタを更新しようとしたとき, the Employee Master Service shall `epm.employee-master.update` 権限をチェックする
+5. When ユーザーが社員マスタを無効化しようとしたとき, the Employee Master Service shall `epm.employee-master.update` 権限をチェックする
+6. When ユーザーが社員マスタを再有効化しようとしたとき, the Employee Master Service shall `epm.employee-master.update` 権限をチェックする
+7. If ユーザーが必要な権限を持たない場合, the Employee Master Service shall 403エラーを返却する
+8. The UI制御とAPI制御は必ず一致させること（UIで操作できない機能はAPIでも実行できてはならない）
 
-- **AC2-2 条件検索**  
-  - *Given* 社員マスタ画面が表示されており、社員名に「田中」と入力している  
-  - *When* ユーザーが「検索」ボタンを押す  
-  - *Then* システムは社員名に「田中」を含む社員のみを一覧表示する
+### Requirement 8: マルチテナント境界
 
-### 3. 編集
+**Objective:** As a SaaS運用者, I want テナント間でデータが分離されること, so that データの安全性とプライバシーを保証できる
 
-- **AC3-1 編集の保存**  
-  - *Given* 社員マスタ更新権限を持つユーザーが、既存社員「E001」の編集画面を開き、所属組織を「営業一部」から「営業二部」に変更している  
-  - *When* ユーザーが「保存」ボタンを押す  
-  - *Then* システムは社員テーブル上の該当レコードを更新し、一覧画面でも所属組織が「営業二部」と表示される
+#### Acceptance Criteria
 
-### 4. 無効化
+1. The Employee Master Service shall すべての社員レコードにtenant_idを持たせる
+2. When 社員マスタ操作が実行されたとき, the Employee Master Service shall 認証情報からtenant_idを解決し、操作対象をテナント境界内に限定する
+3. The Repository shall すべてのDBアクセスでtenant_idを必須パラメータとして受け取る
+4. The RLS（Row Level Security）は常に有効とし、テナント境界を強制する
+5. When 他テナントの社員IDが指定された場合, the Employee Master Service shall 404エラーを返却する（存在しないものとして扱う）
 
-- **AC4-1 無効化の反映**  
-  - *Given* 社員マスタ更新権限を持つユーザーが、社員「E001」の詳細画面で在籍ステータスを「無効」に変更している  
-  - *When* ユーザーが「保存」ボタンを押す  
-  - *Then* システムは社員レコードの在籍ステータスを「無効」に更新し、通常の社員一覧（デフォルト表示）からは「E001」が表示されなくなる
+### Requirement 9: 監査・トレーサビリティ
 
-- **AC4-2 無効を含む表示**  
-  - *Given* 上記のように「E001」が無効化されている  
-  - *When* ユーザーが一覧画面で「無効を含めて表示」のフィルタを有効にする  
-  - *Then* システムは無効社員「E001」も含めて一覧表示する
+**Objective:** As a 監査担当者, I want 社員マスタ操作の履歴を追跡できること, so that 変更の説明責任を果たせる
 
-### 5. 権限制御
+#### Acceptance Criteria
 
-- **AC5-1 参照権限なし**  
-  - *Given* 社員マスタ参照権限を持たないユーザーがログインしている  
-  - *When* 当該ユーザーが社員マスタ画面のURLへ直接アクセスしようとする  
-  - *Then* システムはアクセスを拒否し、権限エラー画面またはメッセージを表示する（詳細は design.md で定義）
+1. When 社員が作成されたとき, the Employee Master Service shall 監査ログに以下を記録する: tenant_id, user_id, 操作種別（create）, 対象社員ID, 作成日時
+2. When 社員が更新されたとき, the Employee Master Service shall 監査ログに以下を記録する: tenant_id, user_id, 操作種別（update）, 対象社員ID, 変更前後の値（主要項目）, 更新日時
+3. When 社員が無効化されたとき, the Employee Master Service shall 監査ログに以下を記録する: tenant_id, user_id, 操作種別（deactivate）, 対象社員ID, 無効化日時
+4. When 社員が再有効化されたとき, the Employee Master Service shall 監査ログに以下を記録する: tenant_id, user_id, 操作種別（reactivate）, 対象社員ID, 再有効化日時
+5. The 監査ログのuser_idは認証プロバイダID（Clerk等）を正本とする
 
-- **AC5-2 更新権限なし**  
-  - *Given* 社員マスタ参照権限のみを持つユーザーが、社員一覧画面を開いている  
-  - *When* ユーザーが社員編集画面へ遷移しようとする、または編集APIを呼び出そうとする  
-  - *Then* システムは編集操作を無効化または拒否し、社員データは変更されない
+### Requirement 10: BFFによるページング・ソート正規化
 
----
+**Objective:** As a UI開発者, I want BFFがページング・ソートを正規化すること, so that UIとDomain APIの責務を分離できる
 
-## 4. ビジネスルール
+#### Acceptance Criteria
 
-1. 社員コードはテナント内で一意でなければならない。  
-2. 社員レコードは原則として物理削除してはならず、無効化により取り扱う。  
-3. 在籍ステータス（有効/無効）は、他機能（例: 将来の入力画面での選択肢）からの参照を前提とする。  
-4. 社員マスタの属性項目（氏名、所属組織、メールアドレスなど）の詳細は design.md で定義し、本ファイルでは振る舞いにフォーカスする。
+1. When UIからページング情報（page, pageSize）が送信されたとき, the BFF shall これをDomain API向けの形式（offset, limit等）に正規化する
+2. When UIからソート条件（sortBy, sortOrder）が送信されたとき, the BFF shall DTO側キー（camelCase）を採用し、DB列名（snake_case）をDomain APIへ露出させない
+3. The BFFはページング・ソートの正規化のみを行い、ビジネスロジックの判断は行わない
 
----
+### Requirement 11: エラーハンドリング（Pass-through）
 
-## 5. 非機能要件（本Featureに関わる範囲）
+**Objective:** As a システム設計者, I want BFFがエラーをPass-throughすること, so that Domain APIのエラー判断を正本として維持できる
 
-1. **パフォーマンス**:  
-   - 1テナントあたり数千件程度の社員レコードを想定し、一覧表示や検索が実用的な速度（数秒以内）で完了すること。
+#### Acceptance Criteria
 
-2. **監査性**:  
-   - 監査ログにより、社員の登録・編集・無効化の操作履歴を追跡できること。
+1. When Domain APIからエラーが返却されたとき, the BFF shall エラーを意味的に再分類・書き換えることなく、そのままUIへ返却する
+2. The BFFはログ付与等の非機能的な処理は許可するが、エラーの意味的な変更は禁止する
+3. The 最終的な拒否（403/404/409/422等）の正本はDomain APIとする
+4. The BFFが独自のビジネス判断を持つことは禁止する
 
-3. **マルチテナント安全性**:  
-   - いかなるAPI / 画面からも、他テナントの社員データが閲覧・更新されないこと（RLS前提）。
+### Requirement 12: Contracts-first原則
 
-4. **権限制御**:  
-   - UIとAPIの両方で権限制御が一貫しており、UIで表示されていない操作がAPI経由で実行できないこと。
+**Objective:** As a システム設計者, I want Contracts-first原則に従うこと, so that API・UI・AI間の契約を明確にできる
 
----
+#### Acceptance Criteria
 
-本 requirements.md は、`master-data/employee-master` の設計（design.md）およびタスク分解（tasks.md）の前提となる要求仕様であり、  
-変更が必要な場合は本ファイルを更新した上で後続フェーズに反映する。
+1. The データ構造・DTO・Enum・Error定義は契約（packages/contracts）を正本とする
+2. The 変更順序は以下を厳守する: 1) Contracts, 2) Backend API, 3) BFF, 4) Frontend UI
+3. The 契約に定義されていないフィールドの暗黙利用は禁止する
+4. The UIはpackages/contracts/src/bffのみを参照し、packages/contracts/src/apiを直接参照してはならない
 
+### Requirement 13: 承認機能（MVP外）
+
+**Objective:** As a プロダクトオーナー, I want 承認機能をMVP外とすること, so that 初期リリースを簡素化できる
+
+#### Acceptance Criteria
+
+1. The 社員マスタの作成・更新・無効化・再有効化に承認ワークフローは含めない
+2. The 承認機能は将来の拡張として設計に含めない（MVP外）

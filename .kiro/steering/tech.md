@@ -51,7 +51,6 @@ Enterprise Performance Management (EPM) SaaS
 - 認証状態はアプリケーションの業務ロジックから分離する  
 - 認可（Authorization）は本システムの責務とし、Clerkに依存しない  
 
-
 ### データベース
 - PostgreSQL
 - Prisma ORM
@@ -261,7 +260,6 @@ Observabilityはデバッグ目的ではなく、
 - どの値からどの値に変更したか  
 
 - auditログの user_id は認証プロバイダID（Clerk 等）を正本とし、認証情報を持たない内部処理では service principal（例: system / service:<job>）を user_id として記録してよい  
-
 - service principal は system または service:<job-name> の形式で記録する
 
 対象：
@@ -347,6 +345,7 @@ structure.md に定義し、本ファイル（tech.md）では扱わない。
 - UI ↔ BFF は `packages/contracts/src/bff` を正とする（画面最適化DTO）。
 - BFF ↔ API は `packages/contracts/src/api` を正とする（Domain API DTO）。
 - BFFは `api DTO` を受け取り、必要に応じて `bff DTO` へ変換してUIへ返却する。
+ - `sortBy` は DTO側キー（camelCase）を採用し、DB列名（snake_case）を UI/BFF に露出させない（例: `employeeCode` / `employeeName`）。
 
 ### 13.3 権限・認可（UI/BFF/APIの一貫性）
 
@@ -365,6 +364,17 @@ structure.md に定義し、本ファイル（tech.md）では扱わない。
 
 - v0はUI叩き台用途に限定する。
 - v0生成物はそのまま正本とせず、`design.md` と `contracts` に従って実装に取り込む。
+
+### 13.8 Error Policy は Feature設計で必ず明記する（Non-Negotiable）
+
+- 各 Feature の design.md では、BFFの Error Policy を必ず選択し、その理由を明記すること
+  - Option A: Pass-through（原則・推奨）
+  - Option B: Minimal shaping（例外）
+- 未選択・未記載の Feature は「設計未完了」とみなし、実装を禁止する
+- Option A の場合：Domain API エラーを意味的に再分類・書き換えることは禁止（ログ付与等の非機能は除く）
+- Option B の場合：UI表示に必要な最小整形のみ許可し、整形結果は contracts/bff/errors に必ず定義する
+- 最終拒否（403/404/409/422等）の正本は Domain API とする
+- BFFが独自のビジネス判断を持つことは禁止する
 
 ---
 

@@ -13,6 +13,33 @@
 * **仕様（Spec）が常に正**であり、実装は従属物とする
 * 人・AI・ツールが混在しても構造と責務が崩れないことを最優先とする
 
+## 0.1 Principles（MUST）
+
+本プロジェクトにおける開発順序・責務境界は、すべてのFeature・すべてのAI/実装者に対して拘束力を持つ。
+
+### Core Ordering（Contracts-first）
+
+- すべてのfeatureは **contracts（bff → api → shared）を先に確定**してから DB/実装に進む。
+- tasks.md は必ず以下の順で並べる：
+  1) Decisions
+  2) Contracts（bff → api → shared）
+  3) DB/Migration/RLS
+  4) Domain API
+  5) BFF
+  6) UI（最後）
+
+### v0 UI Generation（Two-Phase）
+
+- Phase 1（統制テスト）：
+  - 目的：境界/契約/Design System準拠の検証（見た目完成は目的外）
+  - 出力先：`apps/web/_v0_drop/<context>/<feature>/src`
+  - MockBffClientで動作確認（BFF未接続）
+  - structure-guards を必ず通す
+- Phase 2（本実装）：
+  - v0出力を features に移植
+  - HttpBffClient 実装・実BFF接続
+  - URL state / debounce / E2E などを追加
+
 ---
 
 ## 1. 開発思想（合意済み原則）
