@@ -17,10 +17,16 @@ export class HttpBffClient implements BffClient {
   private baseUrl = "/api/bff/master-data/employee-master"
 
   private async fetch<T>(url: string, options?: RequestInit): Promise<T> {
+    // TODO: 本番では認証情報から取得
+    const tenantId = "tenant-001"
+    const userId = "user-001"
+
     const response = await fetch(url, {
       ...options,
       headers: {
         "Content-Type": "application/json",
+        "x-tenant-id": tenantId,
+        "x-user-id": userId,
         ...options?.headers,
       },
     })

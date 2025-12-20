@@ -6,7 +6,7 @@ import { EmployeeList } from "./components/EmployeeList"
 import { EmployeeSearchPanel } from "./components/EmployeeSearchPanel"
 import { CreateEmployeeDialog } from "./components/CreateEmployeeDialog"
 import { EmployeeDetailDialog } from "./components/EmployeeDetailDialog"
-import { MockBffClient } from "./api/MockBffClient"
+import { HttpBffClient } from "./api/HttpBffClient"
 import type {
   ListEmployeeMasterRequest,
   EmployeeMasterListItem,
@@ -14,7 +14,7 @@ import type {
 } from "@contracts/bff/employee-master"
 
 // BFF Client instance
-const bffClient = new MockBffClient()
+const bffClient = new HttpBffClient()
 
 export default function EmployeeMasterPage() {
   // State

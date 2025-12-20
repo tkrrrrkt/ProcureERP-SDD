@@ -1,461 +1,164 @@
 # CLAUDE.md
+# CCSDD / SDD Operating Guide for Claude Code
+
+⚠️ IMPORTANT — SOURCE OF TRUTH NOTICE
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## Project Overview
-
-This is an EPM (Enterprise Performance Management) SaaS application built using CCSDD (Contract-Centered Specification Driven Development). The project follows a strict specification-driven approach where specifications are the Single Source of Truth (SSoT) and code is subordinate to specs.
-
-**Core Philosophy:**
-- Specifications in `.kiro/` are SSoT, not code
-- Contracts-first development: contracts → backend → frontend
-- v0.dev UI generation is isolated, validated, then migrated
-- Multi-tenant SaaS with Row Level Security (RLS)
-
-## Architecture
-
-This is a pnpm monorepo with three main applications and two shared packages:
-
-```
-apps/
-├── web/          # Next.js frontend (App Router)
-├── api/          # NestJS Domain API
-└── bff/          # NestJS Backend-for-Frontend
-
-packages/
-├── contracts/    # API/BFF type contracts (SSoT for boundaries)
-└── db/          # Prisma schema and migrations
-```
-
-**Layer Boundaries (strictly enforced):**
-- UI → BFF only (via `@contracts/bff`)
-- BFF → Domain API (via `@contracts/api`)
-- UI cannot import from `@contracts/api` (violation)
-
-## Development Commands
-
-### Root Level (pnpm workspace)
-```bash
-# Development
-pnpm dev:web        # Start Next.js dev server (port 3000)
-pnpm dev:api        # Start Domain API in watch mode
-pnpm dev:bff        # Start BFF in watch mode
-
-# Build
-pnpm build:web      # Build Next.js production bundle
-pnpm build:api      # Build NestJS API
-pnpm build:bff      # Build NestJS BFF
-```
-
-### Web App (apps/web)
-```bash
-cd apps/web
-pnpm dev            # Next.js development server
-pnpm build          # Production build
-pnpm start          # Production server
-pnpm lint           # ESLint
-```
-
-### API/BFF (apps/api or apps/bff)
-```bash
-cd apps/api         # or apps/bff
-pnpm start:dev      # NestJS watch mode
-pnpm start:debug    # Debug mode with watch
-pnpm build          # Production build
-```
-
-### Database (packages/db)
-```bash
-cd packages/db
-pnpm db:generate        # Generate Prisma Client
-pnpm db:migrate:dev     # Create and apply migration
-pnpm db:push            # Push schema without migration
-pnpm db:studio          # Open Prisma Studio
-```
-
-### v0.dev UI Integration
-```bash
-# Fetch UI components from v0.dev
-./scripts/v0-fetch.sh <v0_url> <context>/<feature>
-
-# Complete workflow (fetch + review + migrate)
-./scripts/v0-integrate.sh <v0_url> <context>/<feature>
-
-# First time setup: login to v0
-npx v0 login
-```
-
-## Key Architectural Patterns
-
-### 1. CCSDD Development Order (NON-NEGOTIABLE)
-
-All feature development MUST follow this exact order:
-
-1. **Contracts** (`packages/contracts/src/`)
-   - BFF contracts first (`bff/<feature>/`)
-   - API contracts second (`api/<feature>/`)
-   - Shared types last (`shared/`)
-
-2. **Database** (`packages/db/prisma/`)
-   - Schema definition
-   - Migration creation
-   - RLS policies (MUST include tenant_id checks)
-
-3. **Domain API** (`apps/api/src/modules/`)
-   - Service layer (business logic)
-   - Repository layer (DB access with tenant_id)
-   - Controller layer (uses `@epm/contracts/api`)
-
-4. **BFF** (`apps/bff/src/modules/`)
-   - Controller (uses `@epm/contracts/bff`)
-   - Mapper (transforms API DTOs to BFF DTOs)
-
-5. **UI** (`apps/web/src/features/`)
-   - LAST step only after contracts are stable
-
-### 2. v0.dev UI Generation Workflow (Two-Phase)
-
-**Phase 1: Isolated Generation (Testing)**
-- Output to: `apps/web/_v0_drop/<context>/<feature>/src/`
-- Use `MockBffClient.ts` for testing
-- Run structure guards validation
-- DO NOT mix with production code yet
-
-**Phase 2: Migration (Integration)**
-- Move validated code to: `apps/web/src/features/<context>/<feature>/`
-- Replace MockBffClient with HttpBffClient
-- Update imports to use `@contracts/bff`
-- Register route in `apps/web/src/app/`
-
-### 3. Multi-Tenant Rules (NON-NEGOTIABLE)
-
-**Database Access:**
-- All tables MUST have `tenant_id` column
-- Repositories MUST accept tenant_id parameter
-- RLS policies MUST be enabled (no exceptions)
-- Never disable RLS
-
-**Repository Pattern:**
-```typescript
-// apps/api/src/modules/<context>/<feature>/repository/
-class FeatureRepository {
-  async findAll(tenantId: string) {
-    // MUST use tenant_id in WHERE clause
-    return prisma.table.findMany({ where: { tenant_id: tenantId } });
-  }
-}
-```
-
-### 4. Contract Path Aliases
-
-**Frontend (apps/web):**
-```typescript
-import { EmployeeDto } from '@contracts/bff/employee-master/dto';  // ✅ ALLOWED
-import { ApiDto } from '@contracts/api/employee-master/dto';       // ❌ FORBIDDEN
-import { Component } from '@/features/master-data/employee-master'; // ✅ ALLOWED
-```
-
-**Backend API (apps/api):**
-```typescript
-import { ApiDto } from '@epm/contracts/api/employee-master/dto';   // ✅ ALLOWED
-import { PrismaClient } from '@epm/db';                            // ✅ ALLOWED
-```
-
-**Backend BFF (apps/bff):**
-```typescript
-import { BffDto } from '@epm/contracts/bff/employee-master/dto';   // ✅ ALLOWED
-import { ApiDto } from '@epm/contracts/api/employee-master/dto';   // ✅ ALLOWED
-```
-
-## Directory Structure Deep Dive
-
-### Frontend Structure (apps/web/src)
-```
-src/
-├── app/                              # Next.js App Router (routes only)
-│   └── <context>/<feature>/page.tsx  # Re-exports from features/
-├── features/                         # Feature implementations
-│   └── <context>/<feature>/
-│       ├── page.tsx                  # Main page component
-│       ├── components/               # Feature-specific components
-│       └── api/                      # BFF client implementations
-├── shared/                           # Shared across features
-│   ├── ui/                          # Reusable UI components (Tier 1-3)
-│   ├── shell/                       # App shell, layout
-│   └── navigation/                  # Menu, routing
-└── _v0_drop/                        # v0.dev isolation zone (temporary)
-```
-
-### Backend API Structure (apps/api/src)
-```
-src/
-└── modules/<context>/<feature>/
-    ├── service/                     # Business logic
-    ├── repository/                  # Data access (tenant_id required)
-    └── controller/                  # REST endpoints
-```
-
-### Backend BFF Structure (apps/bff/src)
-```
-src/
-└── modules/<context>/<feature>/
-    ├── controller/                  # UI-optimized endpoints
-    └── mapper/                      # API DTO → BFF DTO transformation
-```
-
-### Contracts Structure (packages/contracts/src)
-```
-src/
-├── api/<feature>/                   # Domain API contracts (BFF → API)
-│   ├── dto/
-│   ├── enums/
-│   └── errors/
-├── bff/<feature>/                   # BFF contracts (UI → BFF)
-│   ├── dto/
-│   ├── enums/
-│   └── errors/
-└── shared/                          # Minimal shared types only
-```
-
-## Specification Files (.kiro/)
-
-**Never modify code without checking specs first.**
-
-### Steering Files (Project Constitution)
-- `.kiro/steering/tech.md` - Technology stack (Next.js, NestJS, Prisma, PostgreSQL)
-- `.kiro/steering/structure.md` - Directory structure rules
-- `.kiro/steering/development-process.md` - CCSDD workflow
-- `.kiro/steering/v0-workflow.md` - v0.dev integration rules
-- `.kiro/steering/epm-design-system.md` - Design tokens (Deep Teal, Royal Indigo)
-
-### Feature Specs (.kiro/specs/<context>/<feature>/)
-```
-.kiro/specs/master-data/employee-master/
-├── spec.json          # Feature metadata
-├── requirements.md    # Requirements (EARS format, Given-When-Then)
-├── design.md          # Architecture, responsibilities, contracts
-└── tasks.md           # Implementation plan with gates
-```
-
-**Development Rule:** When implementing a feature, read these files IN ORDER before writing code.
-
-## Common Patterns
-
-### Adding a New Feature
-
-1. **Create Specification** (before any code):
-   ```bash
-   # Create spec directory
-   mkdir -p .kiro/specs/<context>/<feature>
-
-   # Copy templates from .kiro/settings/templates/specs/
-   # Fill in: spec.json, requirements.md, design.md, tasks.md
-   ```
-
-2. **Implement Contracts** (SSoT for boundaries):
-   ```bash
-   # BFF contracts
-   mkdir -p packages/contracts/src/bff/<feature>/{dto,enums,errors}
-
-   # API contracts
-   mkdir -p packages/contracts/src/api/<feature>/{dto,enums,errors}
-   ```
-
-3. **Database Schema**:
-   ```bash
-   cd packages/db
-   # Edit prisma/schema.prisma
-   # MUST include: tenant_id, created_at, updated_at
-   pnpm db:migrate:dev --name <feature_name>
-   ```
-
-4. **Backend API**:
-   ```bash
-   mkdir -p apps/api/src/modules/<context>/<feature>/{service,repository,controller}
-   ```
-
-5. **BFF**:
-   ```bash
-   mkdir -p apps/bff/src/modules/<context>/<feature>/{controller,mapper}
-   ```
-
-6. **Generate UI with v0.dev**:
-   ```bash
-   # Use template from .kiro/steering/v0-prompt-template-enhanced.md
-   # Generate on https://v0.dev
-   # Click "Add to Codebase" and copy the command
-
-   cd apps/web
-   npx shadcn@latest add "https://v0.app/chat/b/<chat_id>?token=<token>"
-   # Files appear in _v0_drop/<context>/<feature>/src/
-   ```
-
-7. **Migrate UI to Features**:
-   ```bash
-   ./scripts/v0-integrate.sh <v0_url> <context>/<feature>
-   # or manually:
-   mv apps/web/_v0_drop/<context>/<feature>/src/* \
-      apps/web/src/features/<context>/<feature>/
-   ```
-
-8. **Register Route**:
-   ```bash
-   mkdir -p apps/web/src/app/<context>/<feature>
-   # Create page.tsx that re-exports from features/
-   echo "import Page from '@/features/<context>/<feature>/page'; export default Page;" \
-     > apps/web/src/app/<context>/<feature>/page.tsx
-   ```
-
-### Working with Prisma
-
-**Schema Changes:**
-```bash
-cd packages/db
-
-# 1. Edit prisma/schema.prisma
-# 2. Create migration
-pnpm db:migrate:dev --name add_project_master
-
-# 3. Generate client (required after schema changes)
-pnpm db:generate
-```
-
-**Important:** All tables need:
-- `id String @id @default(cuid())`
-- `tenant_id String` (with index)
-- `created_at DateTime @default(now())`
-- `updated_at DateTime @updatedAt`
-- RLS policy in migration SQL
-
-### BFF Client Pattern (Frontend)
-
-Every feature needs 3 client files in `apps/web/src/features/<context>/<feature>/api/`:
-
-1. **BffClient.ts** (interface):
-   ```typescript
-   export interface BffClient {
-     getEmployees(params: SearchParams): Promise<EmployeeDto[]>;
-   }
-   ```
-
-2. **MockBffClient.ts** (for v0 testing):
-   ```typescript
-   export class MockBffClient implements BffClient {
-     async getEmployees() { return mockData; }
-   }
-   ```
-
-3. **HttpBffClient.ts** (production):
-   ```typescript
-   export class HttpBffClient implements BffClient {
-     async getEmployees(params) {
-       return fetch('/api/bff/employees', { ... });
-     }
-   }
-   ```
-
-## Important Constraints
-
-### DO NOT
-- ❌ Create code before contracts are defined
-- ❌ Import `@contracts/api` from frontend (apps/web)
-- ❌ Access database without tenant_id in WHERE clause
-- ❌ Disable Row Level Security (RLS)
-- ❌ Put v0 generated code directly in `apps/web/src/features/`
-- ❌ Use raw color literals like `bg-[#...]` (use CSS variables)
-- ❌ Create `layout.tsx` in feature directories
-- ❌ Mix domain logic into BFF (BFF is mapping/aggregation only)
-
-### DO
-- ✅ Read `.kiro/specs/<context>/<feature>/design.md` before coding
-- ✅ Follow contracts-first order: contracts → DB → API → BFF → UI
-- ✅ Isolate v0 output in `_v0_drop/` first
-- ✅ Use design tokens from `.kiro/steering/epm-design-system.md`
-- ✅ Include tenant_id in all repository queries
-- ✅ Use TypeScript path aliases (`@/`, `@contracts/`)
-- ✅ Keep DTOs in camelCase, DB columns in snake_case
-
-## Technology Stack
-
-**Frontend:**
-- Next.js 15 (App Router)
-- React 18
-- TypeScript
-- Tailwind CSS
-- Radix UI components
-- v0.dev (UI generation tool)
-
-**Backend:**
-- Node.js
-- NestJS (modular monolith for API and BFF)
-- TypeScript
-
-**Database:**
-- PostgreSQL
-- Prisma ORM
-- Row Level Security (RLS)
-
-**Authentication:**
-- Clerk (external IdP)
-- Authorization handled in-app
-
-**Package Manager:**
-- pnpm (workspaces)
-
-## Design System
-
-The project uses a custom EPM Design System with these colors:
-- Primary: Deep Teal `oklch(0.52 0.13 195)`
-- Secondary: Royal Indigo `oklch(0.48 0.15 280)`
-
-Component tiers:
-- **Tier 1**: Base components (button, input, card, etc.)
-- **Tier 2**: Pattern components (data-table, form, dialog, etc.)
-- **Tier 3**: Feature-specific compositions
-
-See `.kiro/steering/epm-design-system.md` for complete definitions.
-
-## Testing Strategy
-
-**Database Testing:**
-```bash
-# PostgreSQL should be running (Docker recommended)
-docker run -d \
-  -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=epm_trial \
-  -p 5432:5432 \
-  postgres:16
-
-# Set DATABASE_URL in .env
-echo 'DATABASE_URL="postgresql://postgres:postgres@localhost:5432/epm_trial"' > packages/db/.env
-```
-
-## Common Issues
-
-**Import Path Issues:**
-- If `@contracts/*` imports fail, check `tsconfig.json` paths configuration
-- Frontend uses `@contracts/*`, backend uses `@epm/contracts/*`
-
-**v0 Integration:**
-- If `npx shadcn add` fails, ensure `package.json` includes `"@contracts/bff": "file:../../packages/contracts"`
-- When prompted to overwrite package.json, select "N"
-
-**Prisma Client:**
-- After schema changes, always run `pnpm db:generate` in packages/db
-- If types are stale, delete `node_modules/.prisma` and regenerate
-
-**Multi-tenant:**
-- If you see cross-tenant data leaks, check Repository WHERE clauses
-- Verify RLS policies in migration files
-
-## Documentation
-
-**Quick Reference:**
-- `doc/DEVELOPMENT_PROCESS_GUIDE.md` - Complete CCSDD workflow
-- `doc/DOCUMENTATION_INDEX.md` - All documentation organized
-- `scripts/README.md` - v0 integration scripts
-
-**Key Steering Docs:**
-- `.kiro/steering/tech.md` - Technology decisions
-- `.kiro/steering/structure.md` - Architecture rules
-- `.kiro/steering/development-process.md` - Development flow
+This file is NOT a source of truth.
+
+Authoritative documents for this project are:
+- `.kiro/steering/*.md` (Project Constitution)
+- `.kiro/specs/<context>/<feature>/*` (Feature Specifications)
+- `packages/contracts/*` (Boundary Contracts SSoT)
+
+If there is any conflict, ALWAYS defer to the documents above.
+This file exists only to help Claude Code navigate and comply with them.
+
+---
+
+## 0. Project Context (Read-Only)
+
+This repository is an **Enterprise Performance Management (EPM) SaaS** built with
+**CCSDD (Contract-Centered Specification Driven Development)**.
+
+Core goals:
+- SSoT-driven architecture (specs > contracts > code)
+- Contracts-first boundaries
+- Multi-tenant SaaS with strict governance (RLS, auditability)
+- UI generated with v0, isolated and migrated safely
+- AI is an assistant, not a decision-maker
+
+Product intent, scope, and AI philosophy are defined in:
+- `.kiro/steering/product.md`
+
+---
+
+## 1. Golden Rules (NON-NEGOTIABLE)
+
+1. **SSoT is `.kiro/` and `packages/contracts/`**
+   - Code is always subordinate to specifications and contracts.
+2. **Contracts-first order**
+   - contracts → database → domain API → BFF → UI
+3. **cc-sdd workflow is mandatory**
+   - Do NOT skip steps or hand-roll specs.
+4. **Strict layer boundaries**
+   - UI → BFF only
+   - BFF → Domain API allowed
+   - UI must NEVER import API contracts
+5. **Multi-tenant enforcement**
+   - All data access requires `tenant_id`
+   - RLS must be enabled and never bypassed
+6. **If unsure**
+   - Stop, inspect `.kiro/steering/` and `.kiro/specs/`
+   - Propose spec changes BEFORE code changes
+
+---
+
+## 2. Required CCSDD Workflow (ALWAYS follow this order)
+
+All feature work for `<context>/<feature>` MUST follow:
+
+1. `/kiro:spec-init "<context>/<feature>"`
+2. `/kiro:spec-requirements "<context>/<feature>"`
+3. `/kiro:spec-design "<context>/<feature>"`
+4. `/kiro:spec-tasks "<context>/<feature>"`
+5. Implement **ONE task at a time** from `tasks.md`
+
+Before writing or modifying any code:
+- Read `requirements.md`
+- Then `design.md`
+- Then `tasks.md`
+
+If any section is missing or ambiguous:
+→ Update the spec first.  
+→ Never “fill gaps” with assumptions in code.
+
+Canonical definition of this workflow:
+- `.kiro/steering/development-process.md`
+
+---
+
+## 3. v0 UI Generation Rules (Two-Phase)
+
+Source of truth:
+- `.kiro/steering/v0-workflow.md`
+- `.kiro/steering/epm-design-system.md`
+
+### Phase 1: UI-MOCK (Isolation)
+- Generate UI ONLY under:
+  - `apps/web/_v0_drop/<context>/<feature>/src`
+- Use `MockBffClient`
+- No production imports
+- No domain logic
+
+### Phase 2: UI-BFF (Migration)
+- Migrate validated UI to:
+  - `apps/web/src/features/<context>/<feature>/`
+- Replace mock with `HttpBffClient`
+- Enforce BFF contracts and error mapping
+
+Never:
+- Write v0 output directly into `apps/web/src`
+- Call Domain API from UI
+- Implement business rules in UI
+
+---
+
+## 4. Boundary & Import Rules
+
+### UI (apps/web)
+- Allowed:
+  - `packages/contracts/src/bff`
+  - `@/shared/ui`
+- Forbidden:
+  - `packages/contracts/src/api`
+  - Direct fetch outside `HttpBffClient`
+
+### BFF (apps/bff)
+- Uses BFF contracts
+- May import API contracts
+- No domain logic beyond mapping/aggregation
+
+### Domain API (apps/api)
+- Business logic authority
+- Enforces tenant isolation
+- Uses API contracts only
+
+Canonical structure rules:
+- `.kiro/steering/structure.md`
+- `.kiro/steering/tech.md`
+
+---
+
+## 5. Design System Rules (UI)
+
+Design System SSoT:
+- `.kiro/steering/epm-design-system.md`
+
+Rules:
+- Use semantic tokens only
+- No raw color literals
+- No arbitrary spacing values
+- Respect Tier 1 / 2 / 3 component policy
+- Never recreate base UI components in features
+
+---
+
+## 6. What NOT To Do (Common Failures)
+
+- Do NOT implement code before contracts/specs exist
+- Do NOT infer missing requirements
+- Do NOT bypass RLS or tenant filters
+- Do NOT treat this file as authoritative spec
+- Do NOT generate large refactors without spec updates
+
+---
+
+## 7. When in Doubt
+
+If there is any uncertainty:
+1. Open `.kiro/steering/development-process.md`
+2. Check the relevant `.kiro/specs/<context>/<feature>/`
+3. Propose clarification or update specs
+4. Then proceed with implementation
+
+Claude Code must behave as a **strict CCSDD operator**, not an autonomous designer.

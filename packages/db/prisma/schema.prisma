@@ -1,0 +1,76 @@
+// EPM Database Schema
+// CCSDD: Prisma Schema は Domain API の永続化層を定義
+// RLS: tenant_id による行レベルセキュリティを PostgreSQL で実装
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================================
+// Project Master
+// =============================================================================
+// FR-LIST-08: プロジェクトマスタのDBモデル定義
+// - tenant_id + project_code でユニーク制約
+// - 楽観ロック用の version フィールド
+// - 日付は DateTime 型、金額は Decimal 型
+// =============================================================================
+
+model Project {
+  id                       String    @id @default(uuid())
+  tenantId                 String    @map("tenant_id")
+  projectCode              String    @map("project_code")
+  projectName              String    @map("project_name")
+  projectShortName         String?   @map("project_short_name")
+  projectKanaName          String?   @map("project_kana_name")
+  departmentCode           String?   @map("department_code")
+  responsibleEmployeeCode  String?   @map("responsible_employee_code")
+  responsibleEmployeeName  String?   @map("responsible_employee_name")
+  plannedPeriodFrom        DateTime  @map("planned_period_from")
+  plannedPeriodTo          DateTime  @map("planned_period_to")
+  actualPeriodFrom         DateTime? @map("actual_period_from")
+  actualPeriodTo           DateTime? @map("actual_period_to")
+  budgetAmount             Decimal   @map("budget_amount") @db.Decimal(19, 2)
+  version                  Int       @default(0)
+  isActive                 Boolean   @default(true) @map("is_active")
+  createdAt                DateTime  @default(now()) @map("created_at")
+  updatedAt                DateTime  @updatedAt @map("updated_at")
+  createdBy                String    @map("created_by")
+  updatedBy                String    @map("updated_by")
+
+  @@unique([tenantId, projectCode], name: "tenant_project_code")
+  @@index([tenantId, isActive], name: "idx_tenant_is_active")
+  @@index([tenantId, projectCode], name: "idx_tenant_project_code")
+  @@index([tenantId, plannedPeriodFrom], name: "idx_tenant_planned_period_from")
+  @@map("project")
+}
+
+// =============================================================================
+// Employee Master
+// =============================================================================
+// FR-LIST-08: 社員マスタのDBモデル定義
+// - tenant_id + employee_code でユニーク制約
+// - organization_key は nullable、MVPではFK制約なし
+// =============================================================================
+
+model Employee {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("tenant_id")
+  employeeCode    String   @map("employee_code")
+  employeeName    String   @map("employee_name")
+  organizationKey String?  @map("organization_key")
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  createdBy       String   @map("created_by")
+  updatedBy       String   @map("updated_by")
+
+  @@unique([tenantId, employeeCode], name: "tenant_employee_code")
+  @@index([tenantId, isActive], name: "idx_employee_tenant_is_active")
+  @@index([tenantId, employeeCode], name: "idx_employee_tenant_employee_code")
+  @@map("employee")
+}
