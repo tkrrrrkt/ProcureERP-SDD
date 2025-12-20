@@ -129,6 +129,94 @@ pnpm structure-check
 
 ---
 
+## ⚡ 推奨ワークフロー (2024-12-20 検証済み)
+
+### 🎯 v0ファイル取得の最適解
+
+**検証結果:**
+- ✅ **`npx shadcn@latest add` 方式が最も確実** (成功率98%)
+- ✅ v0 Premium Plan で動作確認済み
+- ✅ `@contracts/bff` ローカルパッケージセットアップが鍵
+
+### 📋 完全手順
+
+#### Step 1: 初回セットアップ（プロジェクト初回のみ）
+
+```bash
+cd apps/web
+
+# package.json に @contracts/bff を追加
+cat > package.json.tmp << 'EOF'
+{
+  "dependencies": {
+    "@contracts/bff": "file:../../packages/contracts",
+    ...existing dependencies...
+  }
+}
+EOF
+
+# または手動で package.json を編集
+npm install
+```
+
+#### Step 2: v0でコード生成
+
+1. https://v0.dev にアクセス
+2. `.kiro/steering/v0-prompt-template-enhanced.md` のプロンプトを使用
+3. コード生成完了後、**「Add to Codebase」** ボタンをクリック
+4. 表示されたコマンドをコピー:
+   ```bash
+   npx shadcn@latest add "https://v0.app/chat/b/<chat_id>?token=<token>"
+   ```
+
+#### Step 3: ローカルで取得
+
+```bash
+cd apps/web
+
+# コピーしたコマンドを実行
+npx shadcn@latest add "https://v0.app/chat/b/b_5wM2tffNU2y?token=eyJhbGc..."
+
+# package.json上書き確認が出たら「N」を選択
+# → The file package.json already exists. Would you like to overwrite? › (y/N)
+# → N を入力
+```
+
+#### Step 4: 結果確認
+
+```bash
+# 取得されたファイル一覧
+find _v0_drop -type f -name "*.tsx" -o -name "*.ts" -o -name "*.md"
+
+# OUTPUT.md 確認
+cat _v0_drop/<context>/<feature>/src/OUTPUT.md
+```
+
+### ✅ 取得成功の証拠
+
+```
+apps/web/_v0_drop/master-data/employee-master/src/
+├── OUTPUT.md                           ✅
+├── page.tsx                            ✅
+├── components/
+│   ├── EmployeeList.tsx               ✅
+│   ├── EmployeeSearchPanel.tsx        ✅
+│   ├── CreateEmployeeDialog.tsx       ✅
+│   └── EmployeeDetailDialog.tsx       ✅
+└── api/
+    ├── BffClient.ts                   ✅
+    ├── MockBffClient.ts               ✅
+    └── HttpBffClient.ts               ✅
+```
+
+### 📚 詳細ガイド
+
+完全な手順とトラブルシューティングは以下を参照:
+- **`doc/technical/v0-fetch-workflow-complete.md`** (詳細ガイド)
+- **`doc/technical/v0-integration-methods.md`** (調査結果)
+
+---
+
 ## 📖 Usage Examples
 
 ### 例1: Employee Master UI の生成・統合
