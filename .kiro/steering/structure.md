@@ -1,12 +1,12 @@
 # Structure Steering
 
-Enterprise Performance Management (EPM) SaaS
+ProcurERP – 購買管理SaaS
 
 ---
 
 ## 1. 本ファイルの位置づけ
 
-本 structure.md は、本EPM SaaSにおける **リポジトリ構造・責務分離・Single Source of Truth（SSoT）の配置ルール** を定義する。
+本 structure.md は、ProcurERPにおける **リポジトリ構造・責務分離・Single Source of Truth（SSoT）の配置ルール** を定義する。
 
 * tech.md が「技術憲法」であるのに対し、本ファイルは「構造憲法」である
 * すべての仕様（Spec）・設計（Design）・実装（Code）は、本構造定義に従う
@@ -19,7 +19,7 @@ Enterprise Performance Management (EPM) SaaS
 * SSoT（正本）は必ず **1か所** に存在させる
 * 仕様（Spec）と実装（Code）を厳密に分離する
 * ドメイン知識はコードではなく仕様に集約する
-* Trial開発であっても、本番EPM SaaSへスケール可能な構造を前提とする
+* Trial開発であっても、本番購買管理SaaSへスケール可能な構造を前提とする
 * AI活用は構造上“安全に制限”できる形で組み込む
 
 ---
@@ -39,7 +39,7 @@ repo/                                 # ← プロジェクトルート（Git Re
 │  │  └─ v0-prompt-template.md        # v0プロンプト雛形（<...>埋めて貼る）
 │  │
 │  └─ specs/                          # Feature単位の仕様（SSoT）
-│     └─ <context>/<feature-name>/    # 例: master-data/employee-master
+│     └─ <context>/<feature-name>/    # 例: master-data/supplier-master
 │        ├─ spec.json                 # Featureメタ情報
 │        ├─ requirements.md           # 要求仕様（EARS / Given-When-Then）
 │        ├─ design.md                 # 設計仕様（Architecture Responsibilities）
@@ -164,17 +164,17 @@ SSoTを複製・再定義することは禁止する。
 
 ---
 
-## 5. EPMドメイン構造（Contextの考え方）
+## 5. 購買管理ドメイン構造（Contextの考え方）
 
-Contextとは、EPMにおける **業務的・意味的な境界** である。
+Contextとは、購買管理における **業務的・意味的な境界** である。
 
 > 本トライアルでは、まず以下3系統を代表として扱う：
 >
 > * master-data（マスタ系）
-> * transactions（入力・トランザクション系）
+> * procurement-flow（購買プロセス系）
 > * reporting（照会・レポート系）
 >
-> 将来スケール時は planning/actuals/kpi-analytics/close-control/integration などへ拡張する。
+> 将来スケール時は finance/integration/analytics などへ拡張する。
 
 ### 想定Context（代表）
 
@@ -182,18 +182,19 @@ Contextとは、EPMにおける **業務的・意味的な境界** である。
 
   * tenant / user / role / permission / audit
   * 認証（Clerk）との境界管理
+  * 組織・社員・承認ルート
 
 * **master-data**
 
-  * Organization / Account / Segment / Period / Scenario / Employee
+  * BusinessPartner（取引先）/ Supplier（仕入先）/ Item（品目）/ PaymentTerm（支払条件）
 
-* **transactions**
+* **procurement-flow**
 
-  * Budget入力 / 予算配賦 / 調整（保存・確定などの状態遷移を含む）
+  * PurchaseRequest（購買依頼）/ Quotation（見積）/ PurchaseOrder（発注）/ GoodsReceipt（入荷）/ PurchaseBooking（仕入計上）
 
 * **reporting**
 
-  * Budget vs Actual / Variance / Drilldown / Export
+  * Spend分析 / 仕入先評価 / 納期遵守率 / Export
 
 横断的関心事（マルチテナント、権限、監査、数値精度、AI境界）は Steering（tech.md）に集約する。
 
@@ -209,9 +210,9 @@ Featureは **ユーザー価値単位（Vertical Slice）** で定義する。
 
 ### Feature例（本トライアルの代表）
 
-* `master-data/employee-master`
-* `transactions/budget-entry`
-* `reporting/budget-vs-actual`
+* `master-data/supplier-master`
+* `procurement-flow/purchase-request`
+* `reporting/spend-analysis`
 
 ---
 
@@ -341,7 +342,7 @@ apps/bff/src/
 
 ## 13. 横串SSoT（App Shell / Navigation / Design System）
 
-EPM SaaSは Feature（機能画面）単体では成立しない。
+購買管理SaaSは Feature（機能画面）単体では成立しない。
 「製品として一貫した体験」を担保する横串要素を、SSoTとして明示的に管理する。
 
 ### 13.1 正本（SSoT）の置き場（非交渉）
@@ -421,4 +422,4 @@ v0生成は Feature と同様に隔離ゾーンへ一次格納し、受入チェ
 ---
 
 構造は目的ではない。
-**EPMという経営判断基盤を、安全に進化させ続けるための前提条件である。**
+**ProcurERPという調達管理基盤を、安全に進化させ続けるための前提条件である。**

@@ -1,4 +1,4 @@
-// EPM Database Package
+// ProcurERP Database Package
 // Re-export Prisma Client for use in apps/api
 
 export * from '@prisma/client'

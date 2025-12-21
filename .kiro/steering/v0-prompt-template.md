@@ -4,7 +4,7 @@
 
 ## Context
 
-You are generating UI for an EPM SaaS. The project uses SDD/CCSDD.
+You are generating UI for ProcurERP (調達管理SaaS). The project uses SDD/CCSDD.
 UI must follow boundary rules and must be easy to hand off to Cursor for implementation.
 
 ---
@@ -82,7 +82,7 @@ Include:
 Provide mock data sets that:
 
 * cover empty state, typical state, and error state
-* use realistic values for EPM domain (period, org, version, amounts)
+* use realistic values for procurement domain (purchase request, quotation, order, supplier, item)
 * strictly match the BFF response DTO shape
 
 ---
@@ -96,18 +96,18 @@ Provide mock data sets that:
 
 # 🔒 REQUIRED: Design System & Repository Constraints (DO NOT REMOVE)
 
-## EPM Design System Registry
+## ProcurERP Design System Registry
 
-You MUST use the EPM Design System from the custom registry:
+You MUST use the ProcurERP Design System from the custom registry:
 
 * Registry URL: https://epm-registry-6xtkaywr0-tkoizumi-hira-tjps-projects.vercel.app
-* Theme: EPM Theme - Deep Teal & Royal Indigo
+* Theme: ProcurERP Theme - Deep Teal & Royal Indigo
 * Primary Color: Deep Teal (oklch(0.52 0.13 195))
 * Secondary Color: Royal Indigo (oklch(0.48 0.15 280))
 
 Add this at the very beginning of your v0 prompt:
 ```
-Use the EPM Design System from: https://epm-registry-6xtkaywr0-tkoizumi-hira-tjps-projects.vercel.app
+Use the ProcurERP Design System from: https://epm-registry-6xtkaywr0-tkoizumi-hira-tjps-projects.vercel.app
 ```
 
 ---
@@ -135,7 +135,7 @@ You MUST follow these SSoT documents and files:
 * Do NOT create new "base UI" components under `apps/web/src/features/**`
   (e.g., button.tsx, input.tsx, table.tsx, dialog.tsx, tabs.tsx, badge.tsx).
 
-### Available Tier 1 Components (EPM Registry)
+### Available Tier 1 Components (ProcurERP Registry)
 * Button (primary=Deep Teal, secondary=Royal Indigo, destructive, outline, ghost, link)
 * Table (with Header, Body, Row, Cell, Caption)
 * Card (with Header, Title, Description, Content, Footer)

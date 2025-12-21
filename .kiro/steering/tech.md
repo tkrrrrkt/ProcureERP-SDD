@@ -1,11 +1,11 @@
-# Tech Steering  
-Enterprise Performance Management (EPM) SaaS
+# Tech Steering
+ProcurERP – 購買管理SaaS
 
 ---
 
 ## 1. 本ファイルの位置づけ
 
-本 tech.md は、本EPM SaaSにおける技術的な最高位ルール（技術憲法）である。
+本 tech.md は、ProcurERPにおける技術的な最高位ルール（技術憲法）である。
 
 - すべての設計・実装・AI生成コードは本ファイルに従う  
 - Feature仕様（requirements / design / tasks）は本定義の下位に位置づけられる  
@@ -17,9 +17,9 @@ Enterprise Performance Management (EPM) SaaS
 
 ### 基本思想
 
-- マルチテナントSaaSとして安全性・監査性・拡張性を最優先する  
-- 経営数値を扱うシステムとして正本性（Single Source of Truth）を最重要視する  
-- AI活用を前提とした構造化データ設計を行う  
+- マルチテナントSaaSとして安全性・監査性・拡張性を最優先する
+- 調達データを扱うシステムとして正本性（Single Source of Truth）を最重要視する
+- AI活用を前提とした構造化データ設計を行う
 - CCSDD（Specification Driven Development）による一貫性ある進化を行う  
 
 ---
@@ -45,10 +45,10 @@ Enterprise Performance Management (EPM) SaaS
 
 ### 認証基盤
 
-- 認証（Authentication）は外部IdPに委譲する  
-- 本EPM SaaSでは Clerk を認証基盤として採用する  
-- ユーザーの識別子（user_id）は Clerk のIDを正とする  
-- 認証状態はアプリケーションの業務ロジックから分離する  
+- 認証（Authentication）は外部IdPに委譲する
+- ProcurERPでは Clerk を認証基盤として採用する
+- ユーザーの識別子（user_id）は Clerk のIDを正とする
+- 認証状態はアプリケーションの業務ロジックから分離する
 - 認可（Authorization）は本システムの責務とし、Clerkに依存しない  
 
 ### データベース
@@ -63,7 +63,7 @@ Enterprise Performance Management (EPM) SaaS
 
 ## 3.1 Contracts-first（SSoT）原則（Non-Negotiable）
 
-本EPM SaaSでは、API・UI・集計処理に先立ち、契約（Contracts）をSSoTとする。
+ProcurERPでは、API・UI・集計処理に先立ち、契約（Contracts）をSSoTとする。
 
 - データ構造・DTO・Enum・Error定義は契約を正とする  
 - 変更順序は以下を厳守する  
@@ -119,32 +119,30 @@ Enterprise Performance Management (EPM) SaaS
 
 ---
 
-## 6. EPMドメイン特有の設計原則
+## 6. 購買管理ドメイン特有の設計原則
 
 - DB上の状態表現（enum / boolean 等）は、将来の状態追加有無・移行容易性・データ整合性への影響を評価した上で、各Featureのdesignにて選定する。contracts側では、DB表現と独立した明示的な状態Enumを定義すること。
 
-### Period × Version × Organization
+### 伝票ステータス管理
 
-すべての経営数値は以下の軸で一意に定義される。
+購買プロセスの伝票（PR/RFQ/PO/GR/仕入計上等）は、以下の原則に従う。
 
-- 期間（Period）
-- バージョン／シナリオ（Version）
-- 組織・事業（Organization）
+- 伝票ステータスは明示的なEnum（例: DRAFT / SUBMITTED / APPROVED / REJECTED / CLOSED）で管理する
+- ステータス遷移は Feature の design.md で定義し、許可された遷移のみを実装する
+- ステータス変更は必ず監査ログを残す
 
-### ロック・締め設計
+### 伝票番号・採番設計
 
-- 締められた Period × Version は原則変更不可  
-- 再オープンは特権操作として扱い、必ず監査ログを残す  
-- ロックは悲観ロックではなく論理ロックとする  
+- 伝票番号は業務識別子として扱い、主キー（UUID）とは分離する
+- 採番ルール（プレフィックス・年月・連番等）は伝票種類ごとに設定可能とする
+- 採番ロジックはDomain Serviceに実装し、テナント単位で一意性を保証する
 
-### 拡張可能性の原則
+### 承認フロー設計
 
-- Close / Lock の業務的な責任単位は Period × Version とする  
-- 実データは Period × Version × Organization × Domain 等の粒度で
-  保持されることを前提とする  
-- 将来的に Domain（Budget / Forecast 等）や Organization 単位へ
-  Close の適用範囲を拡張可能な設計とする  
-- 拡張は設計・仕様追加で対応し、既存データの意味を破壊しないことを前提とする  
+- 承認フローは PR / PO など伝票単位で適用する
+- 承認ルートは条件（金額閾値・カテゴリ等）に基づいて動的に決定可能とする
+- 承認・差戻し・却下は必ず監査ログを残す
+- 将来的な稟議オブジェクト（複数伝票を束ねる）への拡張を考慮した設計とする  
 
 ---
 
@@ -162,56 +160,62 @@ Enterprise Performance Management (EPM) SaaS
 
 権限は以下の形式で定義する。
 
-    epm.<domain>.<action>
+    procure.<domain>.<action>
 
-- 権限の命名規則・構文は tech.md にて統一的に定義し、UI / API 一貫制御の原則のみを扱う  
-- **権限の粒度（create / update / manage 等）は Feature requirements にて確定する**  
-- tech.md では業務判断を伴う粒度設計は行わず、命名規則のみを責務とする  
+- 権限の命名規則・構文は tech.md にて統一的に定義し、UI / API 一貫制御の原則のみを扱う
+- **権限の粒度（create / update / manage 等）は Feature requirements にて確定する**
+- tech.md では業務判断を伴う粒度設計は行わず、命名規則のみを責務とする
 
 #### domain の例
-- budget
-- actual
-- forecast
-- kpi
-- period
-- scenario
-- comment
-- organization
-- user
-- role
+- purchase-request（購買依頼）
+- quotation（見積）
+- purchase-order（発注）
+- goods-receipt（入荷）
+- purchase-booking（仕入計上）
+- supplier（仕入先）
+- item（品目）
+- approval-route（承認ルート）
+- organization（組織）
+- user（ユーザー）
+- role（ロール）
 
 #### action の例
 - read
 - create
 - update
 - delete
-- close
-- reopen
-- lock
-- unlock
-- approve
+- submit（申請）
+- approve（承認）
+- reject（却下）
+- cancel（取消）
 
 ---
 
 ### 7.3 権限定義例
 
-    epm.budget.read
-    epm.budget.update
-    epm.actual.read
-    epm.forecast.update
-    epm.kpi.read
-    epm.kpi.update
-    epm.period.close
-    epm.period.reopen
-    epm.scenario.create
-    epm.scenario.delete
-    epm.comment.create
-    epm.comment.read
-    epm.organization.read
-    epm.organization.update
-    epm.user.read
-    epm.user.update
-    epm.role.assign
+    procure.purchase-request.read
+    procure.purchase-request.create
+    procure.purchase-request.submit
+    procure.purchase-request.approve
+    procure.purchase-order.read
+    procure.purchase-order.create
+    procure.purchase-order.approve
+    procure.purchase-order.cancel
+    procure.goods-receipt.read
+    procure.goods-receipt.create
+    procure.supplier.read
+    procure.supplier.create
+    procure.supplier.update
+    procure.item.read
+    procure.item.create
+    procure.item.update
+    procure.approval-route.read
+    procure.approval-route.update
+    procure.organization.read
+    procure.organization.update
+    procure.user.read
+    procure.user.update
+    procure.role.assign
 
 ---
 
@@ -226,27 +230,27 @@ Enterprise Performance Management (EPM) SaaS
 
 ### 7.5 権限とデータ状態の関係
 
-- 権限を持っていても操作できない状態が存在する  
-- Period が Close されている場合は更新不可  
-- period.reopen は特権ロールのみ許可  
+- 権限を持っていても操作できない状態が存在する
+- 伝票がCLOSED / CANCELLEDの場合は更新不可
+- 承認済み伝票の取消は特権ロールのみ許可  
 
 ---
 
 ## 7.6 Observability（運用・監査の可視性）
 
-本EPM SaaSでは、すべての重要処理を追跡可能とする。
+ProcurERPでは、すべての重要処理を追跡可能とする。
 
-- すべてのリクエストに request_id / trace_id を付与する  
-- ログには最低限以下を含める  
-  - tenant_id  
-  - user_id  
-  - 実行権限（permission）  
-  - 対象リソース  
-  - 結果（success / failure）  
-- Close / Reopen / Import / Recalc / 権限変更は必ず記録対象とする  
+- すべてのリクエストに request_id / trace_id を付与する
+- ログには最低限以下を含める
+  - tenant_id
+  - user_id
+  - 実行権限（permission）
+  - 対象リソース
+  - 結果（success / failure）
+- 伝票の作成・承認・却下・取消 / マスタの重要変更 / 権限変更は必ず記録対象とする
 
-Observabilityはデバッグ目的ではなく、  
-**経営数値の説明責任を果たすための基盤**として扱う。
+Observabilityはデバッグ目的ではなく、
+**調達プロセスの説明責任を果たすための基盤**として扱う。
 
 ---
 
@@ -263,9 +267,9 @@ Observabilityはデバッグ目的ではなく、
 - service principal は system または service:<job-name> の形式で記録する
 
 対象：
-- 経営数値
-- 締め／再オープン
-- コメント・仮説
+- 伝票（購買依頼・見積・発注・入荷・仕入計上）
+- 承認・差戻し・却下
+- マスタ（取引先・仕入先・品目・承認ルート等）の重要変更
 - 権限変更
 
 ---
@@ -318,16 +322,16 @@ structure.md に定義し、本ファイル（tech.md）では扱わない。
 
 ## 12. 技術的成功の定義
 
-- マルチテナント事故が起きない  
-- 経営数値の誤差が発生しない  
-- 監査・説明責任を果たせる  
+- マルチテナント事故が起きない
+- 金額・数量計算の誤差が発生しない
+- 監査・説明責任を果たせる
 - AI活用を安全に拡張できる  
 
 ---
 
 ## 13. BFF（UI専用API）運用ルール（Non-Negotiable）
 
-本EPM SaaSでは、UIの変更頻度とDomainの安定性を分離し、AI実装時の逸脱を防ぐため、BFF（`apps/bff`）を採用する。
+ProcurERPでは、UIの変更頻度とDomainの安定性を分離し、AI実装時の逸脱を防ぐため、BFF（`apps/bff`）を採用する。
 
 ### 13.1 Contracts-first（BFFを含む変更順序）
 
@@ -345,7 +349,7 @@ structure.md に定義し、本ファイル（tech.md）では扱わない。
 - UI ↔ BFF は `packages/contracts/src/bff` を正とする（画面最適化DTO）。
 - BFF ↔ API は `packages/contracts/src/api` を正とする（Domain API DTO）。
 - BFFは `api DTO` を受け取り、必要に応じて `bff DTO` へ変換してUIへ返却する。
- - `sortBy` は DTO側キー（camelCase）を採用し、DB列名（snake_case）を UI/BFF に露出させない（例: `employeeCode` / `employeeName`）。
+- `sortBy` は DTO側キー（camelCase）を採用し、DB列名（snake_case）を UI/BFF に露出させない（例: `supplierCode` / `supplierName`）。
 
 ### 13.3 権限・認可（UI/BFF/APIの一貫性）
 
@@ -378,6 +382,26 @@ structure.md に定義し、本ファイル（tech.md）では扱わない。
 
 ---
 
+## 14. 競合制御（楽観ロック・悲観ロック）
 
-技術は主役ではない。  
-経営判断に耐える「信頼できる基盤」であることが価値である。
+### 14.1 マスタ系：楽観ロック
+
+- 取引先・仕入先・品目・支払条件・承認ルート等のマスタは、**楽観ロック**を基本とする
+- 実装方針：
+  - マスタテーブルに `version`（整数）カラムを設ける
+  - 更新時には、取得時の `version` を WHERE 条件に含めて UPDATE し、更新件数が 0 の場合は競合とみなす
+  - 競合時はユーザーに「他のユーザーによって更新されています」のメッセージを返し、再取得を促す
+
+### 14.2 伝票系：悲観ロック
+
+- 購買依頼・見積・発注・入荷・仕入などの伝票データは、編集競合を避けるため**悲観ロック**を採用する
+- 方針イメージ：
+  - 編集開始時に、「伝票単位の編集ロック」を取得する（DBレベルの `SELECT ... FOR UPDATE` または専用ロックテーブルを利用）
+  - ロック取得済みの伝票は、同一ユーザー以外による編集操作を拒否する（閲覧は許可）
+  - 一定時間操作がない場合や明示的なキャンセル／保存完了時にはロックを解放する
+- 悲観ロックの具体実装は、`feature-xxx/design.md`（伝票系の設計）で詳細を詰める
+
+---
+
+技術は主役ではない。
+調達業務を支える「信頼できる基盤」であることが価値である。

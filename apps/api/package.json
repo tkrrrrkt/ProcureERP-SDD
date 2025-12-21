@@ -1,5 +1,5 @@
 {
-  "name": "@epm/api",
+  "name": "@procure/api",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -14,7 +14,7 @@
     "@nestjs/core": "^10.4.0",
     "@nestjs/platform-express": "^10.4.0",
     "@prisma/client": "^6.1.0",
-    "@epm/contracts": "workspace:*",
+    "@procure/contracts": "workspace:*",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },

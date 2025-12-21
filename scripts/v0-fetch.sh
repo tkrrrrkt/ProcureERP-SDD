@@ -18,7 +18,7 @@ if [ $# -lt 2 ]; then
   echo "Usage: ./scripts/v0-fetch.sh <v0_url> <context>/<feature>"
   echo ""
   echo "Example:"
-  echo "  ./scripts/v0-fetch.sh 'https://v0.dev/chat/abc123' master-data/employee-master"
+  echo "  ./scripts/v0-fetch.sh 'https://v0.dev/chat/abc123' master-data/supplier-master"
   echo ""
   exit 1
 fi

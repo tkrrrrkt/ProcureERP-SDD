@@ -16,7 +16,7 @@ async function main() {
 
   if (!chatId || !featurePath) {
     console.log('Usage: npx tsx scripts/v0-download-chat.ts <chat_id> <context>/<feature>')
-    console.log('Example: npx tsx scripts/v0-download-chat.ts qlGZHOCLnkx master-data/employee-list')
+    console.log('Example: npx tsx scripts/v0-download-chat.ts qlGZHOCLnkx master-data/supplier-list')
     process.exit(1)
   }
 

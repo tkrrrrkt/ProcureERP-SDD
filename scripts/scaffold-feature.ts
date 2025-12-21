@@ -4,7 +4,7 @@
  *
  * Run (recommended):
  *   npx tsx scripts/scaffold-feature.ts <context> <feature>
- *   e.g. npx tsx scripts/scaffold-feature.ts master-data employee-master
+ *   e.g. npx tsx scripts/scaffold-feature.ts master-data supplier-master
  *
  * What it does:
  *  - Ensures .kiro/specs/<context>/<feature> exists (spec-init済み前提)

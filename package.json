@@ -1,17 +1,17 @@
 {
-  "name": "epm-sdd-trial",
+  "name": "procure-erp-sdd",
   "private": true,
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
-    "dev:api": "pnpm --filter @epm/api run start:dev",
-    "dev:bff": "pnpm --filter @epm/bff run start:dev",
-    "dev:web": "pnpm --filter @epm/web run dev",
-    "build:api": "pnpm --filter @epm/api run build",
-    "build:bff": "pnpm --filter @epm/bff run build",
-    "build:web": "pnpm --filter @epm/web run build"
+    "dev:api": "pnpm --filter @procure/api run start:dev",
+    "dev:bff": "pnpm --filter @procure/bff run start:dev",
+    "dev:web": "pnpm --filter @procure/web run dev",
+    "build:api": "pnpm --filter @procure/api run build",
+    "build:bff": "pnpm --filter @procure/bff run build",
+    "build:web": "pnpm --filter @procure/web run build"
   },
   "devDependencies": {
     "dotenv": "^17.2.3",

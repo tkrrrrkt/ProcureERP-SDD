@@ -4,7 +4,7 @@
  *
  * Run (recommended):
  *   npx tsx scripts/v0-migrate.ts <context> <feature> [--force]
- *   e.g. npx tsx scripts/v0-migrate.ts master-data employee-master
+ *   e.g. npx tsx scripts/v0-migrate.ts master-data supplier-master
  *
  * Copies:
  *   apps/web/_v0_drop/<context>/<feature>/src/*

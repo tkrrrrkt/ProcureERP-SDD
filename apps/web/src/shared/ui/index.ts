@@ -1,4 +1,4 @@
-// EPM Design System - Shared UI Components Barrel Export
+// ProcurERP Design System - Shared UI Components Barrel Export
 // Source: design-system-definition-sample (67 components)
 // DO NOT modify this file manually - it should be generated
 

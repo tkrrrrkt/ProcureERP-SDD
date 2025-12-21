@@ -34,7 +34,7 @@ if [ $# -lt 2 ]; then
   echo "  --auto-migrate    Automatically migrate to features/ without confirmation"
   echo ""
   echo "Example:"
-  echo "  ./scripts/v0-integrate.sh 'https://v0.dev/chat/abc123' master-data/employee-master"
+  echo "  ./scripts/v0-integrate.sh 'https://v0.dev/chat/abc123' master-data/supplier-master"
   echo ""
   exit 1
 fi

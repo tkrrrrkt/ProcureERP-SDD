@@ -1,13 +1,17 @@
 import { Module } from '@nestjs/common'
 import { PrismaModule } from './prisma/prisma.module'
-import { ProjectMasterModule } from './modules/master-data/project-master/project-master.module'
-import { EmployeeMasterModule } from './modules/master-data/employee-master/employee-master.module'
+
+// ProcurERP Domain API Modules
+// Modules will be added as features are implemented following CCSDD process
 
 @Module({
   imports: [
     PrismaModule,
-    ProjectMasterModule,
-    EmployeeMasterModule,
+    // Feature modules will be added here:
+    // SupplierMasterModule,
+    // ItemMasterModule,
+    // PurchaseRequestModule,
+    // etc.
   ],
 })
 export class AppModule {}

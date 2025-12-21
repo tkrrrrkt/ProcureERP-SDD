@@ -1,3 +1,3 @@
-// API Errors
-export * from './project-master-error'
-export * from './employee-master-error'
+// ProcurERP API Errors
+// Feature-specific error definitions will be added here as features are implemented
+// Example: export * from './supplier-master-error'

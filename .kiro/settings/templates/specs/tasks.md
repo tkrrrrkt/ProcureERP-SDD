@@ -69,7 +69,7 @@
 
 - [ ] 1.0 Feature骨格生成（Scaffold）
   - 実行: `npx tsx scripts/scaffold-feature.ts <context> <feature>`
-  - 例: `npx tsx scripts/scaffold-feature.ts master-data employee-master`
+  - 例: `npx tsx scripts/scaffold-feature.ts master-data supplier-master`
   - 目的: 正しい配置先を先に確定させる（v0混入防止）
   - 確認:
     - `apps/web/src/features/<context>/<feature>` が作成されている

@@ -1,6 +1,6 @@
 # Scripts Directory
 
-EPM SaaS プロジェクトの自動化スクリプト集
+ProcurERP SaaS プロジェクトの自動化スクリプト集
 
 ---
 
@@ -19,7 +19,7 @@ v0.dev で生成したUIコンポーネントをローカルの `_v0_drop` に�
 **Example:**
 
 ```bash
-./scripts/v0-fetch.sh "https://v0.dev/chat/abc123xyz" master-data/employee-master
+./scripts/v0-fetch.sh "https://v0.dev/chat/abc123xyz" master-data/supplier-master
 ```
 
 **What it does:**
@@ -32,10 +32,10 @@ v0.dev で生成したUIコンポーネントをローカルの `_v0_drop` に�
 **Output Structure:**
 
 ```
-apps/web/_v0_drop/master-data/employee-master/src/
+apps/web/_v0_drop/master-data/supplier-master/src/
 ├── OUTPUT.md
 ├── components/
-│   └── employee-list.tsx
+│   └── supplier-list.tsx
 ├── api/
 │   ├── BffClient.ts
 │   ├── MockBffClient.ts
@@ -60,10 +60,10 @@ v0-fetch + Cursor レビュー + features/ 移行を自動化します。
 
 ```bash
 # 対話的モード (推奨)
-./scripts/v0-integrate.sh "https://v0.dev/chat/abc123" master-data/employee-master
+./scripts/v0-integrate.sh "https://v0.dev/chat/abc123" master-data/supplier-master
 
 # 自動移行モード
-./scripts/v0-integrate.sh "https://v0.dev/chat/abc123" master-data/employee-master --auto-migrate
+./scripts/v0-integrate.sh "https://v0.dev/chat/abc123" master-data/supplier-master --auto-migrate
 ```
 
 **Workflow:**
@@ -195,14 +195,14 @@ cat _v0_drop/<context>/<feature>/src/OUTPUT.md
 ### ✅ 取得成功の証拠
 
 ```
-apps/web/_v0_drop/master-data/employee-master/src/
+apps/web/_v0_drop/master-data/supplier-master/src/
 ├── OUTPUT.md                           ✅
 ├── page.tsx                            ✅
 ├── components/
-│   ├── EmployeeList.tsx               ✅
-│   ├── EmployeeSearchPanel.tsx        ✅
-│   ├── CreateEmployeeDialog.tsx       ✅
-│   └── EmployeeDetailDialog.tsx       ✅
+│   ├── SupplierList.tsx               ✅
+│   ├── SupplierSearchPanel.tsx        ✅
+│   ├── CreateSupplierDialog.tsx       ✅
+│   └── SupplierDetailDialog.tsx       ✅
 └── api/
     ├── BffClient.ts                   ✅
     ├── MockBffClient.ts               ✅
@@ -219,19 +219,19 @@ apps/web/_v0_drop/master-data/employee-master/src/
 
 ## 📖 Usage Examples
 
-### 例1: Employee Master UI の生成・統合
+### 例1: Supplier Master UI の生成・統合
 
 ```bash
 # 1. v0.dev でプロンプト実行
 # (ブラウザで https://v0.dev にアクセス)
 # プロンプト内容:
-#   Use the EPM Design System from: https://epm-registry-6xtkaywr0-tkoizumi-hira-tjps-projects.vercel.app
-#   Create an Employee List page with...
+#   Use the ProcurERP Design System
+#   Create a Supplier List page with...
 
 # 2. 生成完了後、URL をコピー (例: https://v0.dev/chat/abc123xyz)
 
 # 3. ローカルで統合ワークフロー実行
-./scripts/v0-integrate.sh "https://v0.dev/chat/abc123xyz" master-data/employee-master
+./scripts/v0-integrate.sh "https://v0.dev/chat/abc123xyz" master-data/supplier-master
 
 # 4. Cursor が自動で開くので、OUTPUT.md を確認
 
@@ -244,20 +244,20 @@ apps/web/_v0_drop/master-data/employee-master/src/
 # 7. features/ へ移行 (y で確認)
 
 # 8. Cursor で imports 修正:
-# "Update all imports in apps/web/src/features/master-data/employee-master
-#  to use @/shared/ui and @contracts/bff/master-data/employee"
+# "Update all imports in apps/web/src/features/master-data/supplier-master
+#  to use @/shared/ui and @contracts/bff/master-data/supplier"
 
 # 9. Route 登録
-mkdir -p apps/web/src/app/master-data/employee-master
-echo "import Page from '@/features/master-data/employee-master/page'; export default Page;" \
-  > apps/web/src/app/master-data/employee-master/page.tsx
+mkdir -p apps/web/src/app/master-data/supplier-master
+echo "import Page from '@/features/master-data/supplier-master/page'; export default Page;" \
+  > apps/web/src/app/master-data/supplier-master/page.tsx
 
 # 10. Navigation menu 追加
 # apps/web/src/shared/navigation/menu.ts を編集
 
 # 11. テスト
 pnpm dev
-# http://localhost:3000/master-data/employee-master
+# http://localhost:3000/master-data/supplier-master
 ```
 
 ---
@@ -265,14 +265,14 @@ pnpm dev
 ### 例2: 複数の Feature を並行開発
 
 ```bash
-# Terminal 1: Employee Master
-./scripts/v0-integrate.sh "https://v0.dev/chat/abc123" master-data/employee-master
+# Terminal 1: Supplier Master
+./scripts/v0-integrate.sh "https://v0.dev/chat/abc123" master-data/supplier-master
 
-# Terminal 2: Budget Entry
-./scripts/v0-integrate.sh "https://v0.dev/chat/def456" budget/entry
+# Terminal 2: Purchase Request
+./scripts/v0-integrate.sh "https://v0.dev/chat/def456" procurement-flow/purchase-request
 
-# Terminal 3: Budget Approval
-./scripts/v0-integrate.sh "https://v0.dev/chat/ghi789" budget/approval
+# Terminal 3: Purchase Order
+./scripts/v0-integrate.sh "https://v0.dev/chat/ghi789" procurement-flow/purchase-order
 ```
 
 ---
@@ -294,7 +294,7 @@ npx v0 login
 # Vercel アカウントで認証 (ブラウザが開く)
 
 # 再実行
-./scripts/v0-fetch.sh "https://v0.dev/chat/abc123" master-data/employee-master
+./scripts/v0-fetch.sh "https://v0.dev/chat/abc123" master-data/supplier-master
 ```
 
 ---
@@ -319,7 +319,7 @@ brew install --cask cursor
 
 **Manual Open:**
 ```bash
-cursor apps/web/_v0_drop/master-data/employee-master/src
+cursor apps/web/_v0_drop/master-data/supplier-master/src
 ```
 
 ---
@@ -370,7 +370,7 @@ from globals.css (--primary, --secondary, --muted, etc.)"
 - **v0 × Cursor Workflow**: `docs/v0-cursor-integration-workflow.md`
 - **v0 Prompt Template**: `.kiro/steering/v0-prompt-template.md`
 - **Development Process**: `.kiro/steering/development-process.md`
-- **EPM Design System Registry**: https://epm-registry-6xtkaywr0-tkoizumi-hira-tjps-projects.vercel.app
+- **ProcurERP Design System**: `.kiro/steering/procure-design-system.md`
 
 ---
 
@@ -404,9 +404,9 @@ chmod +x scripts/*.sh
 
 1. **v0 URL を仕様書に記録**:
    ```markdown
-   <!-- .kiro/specs/master-data/employee-master/design.md -->
+   <!-- .kiro/specs/master-data/supplier-master/design.md -->
    ## UI Components
-   - Employee List: https://v0.dev/chat/abc123 (2025-01-19)
+   - Supplier List: https://v0.dev/chat/abc123 (2025-01-19)
    ```
 
 2. **OUTPUT.md を必ず確認**:

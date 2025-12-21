@@ -17,7 +17,7 @@ This file exists only to help Claude Code navigate and comply with them.
 
 ## 0. Project Context (Read-Only)
 
-This repository is an **Enterprise Performance Management (EPM) SaaS** built with
+This repository is **ProcurERP** – a **Procurement Management SaaS (購買管理SaaS)** built with
 **CCSDD (Contract-Centered Specification Driven Development)**.
 
 Core goals:
@@ -81,7 +81,7 @@ Canonical definition of this workflow:
 
 Source of truth:
 - `.kiro/steering/v0-workflow.md`
-- `.kiro/steering/epm-design-system.md`
+- `.kiro/steering/procure-design-system.md`
 
 ### Phase 1: UI-MOCK (Isolation)
 - Generate UI ONLY under:
@@ -132,7 +132,7 @@ Canonical structure rules:
 ## 5. Design System Rules (UI)
 
 Design System SSoT:
-- `.kiro/steering/epm-design-system.md`
+- `.kiro/steering/procure-design-system.md`
 
 Rules:
 - Use semantic tokens only

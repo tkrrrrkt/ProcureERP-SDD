@@ -6,7 +6,7 @@
 
 ## 0. 本ドキュメントの位置づけ
 
-本ドキュメントは、**業務系SaaS（EPM想定）を CCSDD（Contract-Centered Specification Driven Development）前提で、v0 と Cursor を組み合わせて破綻なく開発するための「開発プロセス憲法」**である。
+本ドキュメントは、**業務系SaaS（ProcurERP）を CCSDD（Contract-Centered Specification Driven Development）前提で、v0 と Cursor を組み合わせて破綻なく開発するための「開発プロセス憲法」**である。
 
 * 本書は `.kiro/steering/` 配下に配置される**正本（SSoT）**である
 * すべての Feature 開発・AI実装・レビューは本書に従う

@@ -7,17 +7,24 @@
  * - Which features are reachable by users
  *
  * Features MUST NOT define their own entry points.
+ *
+ * ProcurERP - 調達管理SaaS
  */
 
 import {
   LayoutDashboard,
-  Calculator,
-  BarChart3,
+  ClipboardList,
+  FileText,
+  ShoppingCart,
+  PackageCheck,
+  Receipt,
   Database,
   Settings,
   Users,
   Building2,
-  FolderKanban,
+  Truck,
+  Package,
+  BarChart3,
   TrendingUp,
   type LucideIcon,
 } from "lucide-react"
@@ -40,31 +47,45 @@ export const menu: MenuItem[] = [
     icon: LayoutDashboard,
   },
   {
-    id: "planning",
-    label: "Planning",
-    labelJa: "計画",
-    icon: Calculator,
+    id: "procurement-flow",
+    label: "Procurement",
+    labelJa: "購買プロセス",
+    icon: ShoppingCart,
     children: [
       {
-        id: "budget-entry",
-        label: "Budget Entry",
-        labelJa: "予算入力",
-        path: "/planning/budget-entry",
+        id: "purchase-request",
+        label: "Purchase Requests",
+        labelJa: "購買依頼",
+        path: "/procurement/purchase-requests",
+        icon: ClipboardList,
       },
-    ],
-  },
-  {
-    id: "analysis",
-    label: "Analysis",
-    labelJa: "分析",
-    icon: BarChart3,
-    children: [
       {
-        id: "budget-vs-actual",
-        label: "Budget vs Actual",
-        labelJa: "予実分析",
-        path: "/analysis/budget-vs-actual",
-        icon: TrendingUp,
+        id: "quotation",
+        label: "Quotations",
+        labelJa: "見積",
+        path: "/procurement/quotations",
+        icon: FileText,
+      },
+      {
+        id: "purchase-order",
+        label: "Purchase Orders",
+        labelJa: "発注",
+        path: "/procurement/purchase-orders",
+        icon: ShoppingCart,
+      },
+      {
+        id: "goods-receipt",
+        label: "Goods Receipt",
+        labelJa: "入荷",
+        path: "/procurement/goods-receipts",
+        icon: PackageCheck,
+      },
+      {
+        id: "purchase-booking",
+        label: "Purchase Booking",
+        labelJa: "仕入計上",
+        path: "/procurement/purchase-bookings",
+        icon: Receipt,
       },
     ],
   },
@@ -75,18 +96,18 @@ export const menu: MenuItem[] = [
     icon: Database,
     children: [
       {
-        id: "project-master",
-        label: "Projects",
-        labelJa: "プロジェクト",
-        path: "/master-data/project-master",
-        icon: FolderKanban,
+        id: "supplier-master",
+        label: "Suppliers",
+        labelJa: "仕入先",
+        path: "/master-data/suppliers",
+        icon: Truck,
       },
       {
-        id: "employee-master",
-        label: "Employees",
-        labelJa: "従業員",
-        path: "/master-data/employee-master",
-        icon: Users,
+        id: "item-master",
+        label: "Items",
+        labelJa: "品目",
+        path: "/master-data/items",
+        icon: Package,
       },
       {
         id: "organization-master",
@@ -94,6 +115,21 @@ export const menu: MenuItem[] = [
         labelJa: "組織",
         path: "/master-data/organizations",
         icon: Building2,
+      },
+    ],
+  },
+  {
+    id: "reporting",
+    label: "Reports",
+    labelJa: "レポート",
+    icon: BarChart3,
+    children: [
+      {
+        id: "spend-analysis",
+        label: "Spend Analysis",
+        labelJa: "Spend分析",
+        path: "/reports/spend-analysis",
+        icon: TrendingUp,
       },
     ],
   },

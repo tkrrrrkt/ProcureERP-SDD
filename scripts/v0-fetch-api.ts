@@ -6,7 +6,7 @@
  *   npx tsx scripts/v0-fetch-api.ts <chat_id> <context>/<feature>
  *
  * Example:
- *   npx tsx scripts/v0-fetch-api.ts b_5wM2tffNU2y master-data/employee-master
+ *   npx tsx scripts/v0-fetch-api.ts b_5wM2tffNU2y master-data/supplier-master
  */
 
 import { v0 } from 'v0-sdk'
@@ -62,7 +62,7 @@ async function main() {
     console.log('Usage: npx tsx scripts/v0-fetch-api.ts <chat_id> <context>/<feature>')
     console.log('')
     console.log('Example:')
-    console.log('  npx tsx scripts/v0-fetch-api.ts b_5wM2tffNU2y master-data/employee-master')
+    console.log('  npx tsx scripts/v0-fetch-api.ts b_5wM2tffNU2y master-data/supplier-master')
     console.log('')
     process.exit(1)
   }
@@ -71,7 +71,7 @@ async function main() {
   if (!context || !feature) {
     log('red', '❌ Error: Invalid feature path format')
     console.log('Expected format: <context>/<feature>')
-    console.log('Example: master-data/employee-master')
+    console.log('Example: master-data/supplier-master')
     process.exit(1)
   }
 

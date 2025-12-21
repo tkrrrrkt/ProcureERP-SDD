@@ -1,11 +1,15 @@
 import { Module } from '@nestjs/common'
-import { ProjectMasterBffModule } from './modules/master-data/project-master/project-master.module'
-import { EmployeeMasterBffModule } from './modules/master-data/employee-master/employee-master.module'
+
+// ProcurERP BFF Modules
+// Modules will be added as features are implemented following CCSDD process
 
 @Module({
   imports: [
-    ProjectMasterBffModule,
-    EmployeeMasterBffModule,
+    // Feature modules will be added here:
+    // SupplierMasterBffModule,
+    // ItemMasterBffModule,
+    // PurchaseRequestBffModule,
+    // etc.
   ],
 })
 export class AppModule {}

@@ -1,19 +1,19 @@
-<!-- Source of truth: .kiro/steering/v0-workflow.md + epm-design-system.md -->
+<!-- Source of truth: .kiro/steering/v0-workflow.md + procure-design-system.md -->
 
 # v0 Prompt Template（<...> を埋めて v0 に貼る）
 
 ## Context
 
-You are generating UI for an EPM SaaS. The project uses SDD/CCSDD.
+You are generating UI for ProcurERP (調達管理SaaS). The project uses SDD/CCSDD.
 UI must follow boundary rules and must be easy to hand off to Cursor for implementation.
 
 ---
 
-## EPM Design System (MANDATORY - READ FIRST)
+## ProcurERP Design System (MANDATORY - READ FIRST)
 
 ### 🎨 Design System Source of Truth
 
-You MUST follow the EPM Design System defined in `.kiro/steering/epm-design-system.md` (973 lines).
+You MUST follow the ProcurERP Design System defined in `.kiro/steering/procure-design-system.md` (973 lines).
 
 **Key Design Principles:**
 - **Modern, clean, minimalist** aesthetic
@@ -215,7 +215,7 @@ Include:
 Provide mock data sets that:
 
 * cover empty state, typical state, and error state
-* use realistic values for EPM domain (period, org, version, amounts)
+* use realistic values for procurement domain (purchase request, quotation, order, supplier, item)
 * strictly match the BFF response DTO shape
 
 ---
@@ -233,7 +233,7 @@ Provide mock data sets that:
 
 You MUST follow these SSoT documents and files:
 
-* `.kiro/steering/epm-design-system.md` (973 lines - complete design system spec)
+* `.kiro/steering/procure-design-system.md` (973 lines - complete design system spec)
 * `apps/web/src/shared/ui/tokens/globals.css` (CSS variables and theme)
 * `apps/web/src/shared/shell/AppShell.tsx` (layout wrapper)
 * `apps/web/src/shared/navigation/menu.ts` (navigation structure)
@@ -372,13 +372,13 @@ apps/web/src/features/<context>/<feature>/page.tsx  (Feature component)
 
 **Example Output Structure:**
 ```
-apps/web/_v0_drop/master-data/employee-master/src/
+apps/web/_v0_drop/master-data/supplier-master/src/
 ├── OUTPUT.md
 ├── page.tsx
 ├── components/
-│   ├── EmployeeList.tsx
-│   ├── EmployeeCreateDialog.tsx
-│   └── EmployeeEditDialog.tsx
+│   ├── SupplierList.tsx
+│   ├── SupplierCreateDialog.tsx
+│   └── SupplierEditDialog.tsx
 ├── api/
 │   ├── BffClient.ts
 │   ├── MockBffClient.ts
@@ -520,7 +520,7 @@ After generating, verify:
 ## Example: Complete v0 Prompt
 
 ```markdown
-Use EPM Design System colors and components.
+Use ProcurERP Design System colors and components.
 Primary: Deep Teal oklch(0.52 0.13 195)
 Secondary: Royal Indigo oklch(0.48 0.15 280)
 
@@ -539,10 +539,10 @@ BFF Endpoints:
 | PUT | /api/bff/master-data/employees/:id | EmployeeUpdateRequest | EmployeeUpdateResponse |
 
 DTOs:
-import type { EmployeeListResponse } from '@contracts/bff/master-data/employee'
+import type { SupplierListResponse } from '@contracts/bff/master-data/supplier'
 
 Use Tier 1 components: Button, Table, Card, Input, Dialog, Badge
-Output to: apps/web/_v0_drop/master-data/employee-master/src
+Output to: apps/web/_v0_drop/master-data/supplier-master/src
 
 Include OUTPUT.md with:
 1. File tree
