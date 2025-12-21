@@ -29,3 +29,29 @@ datasource db {
 // - GoodsReceipt（入荷）
 // - PurchaseBooking（仕入計上）
 // =============================================================================
+
+// =============================================================================
+// Master Data: Employee（社員マスタ）
+// =============================================================================
+
+model Employee {
+  id             String    @id @default(uuid())
+  tenantId       String    @map("tenant_id")
+  employeeCode   String    @map("employee_code")
+  employeeName   String    @map("employee_name")
+  employeeKanaName String  @map("employee_kana_name")
+  email          String?
+  joinDate       DateTime  @map("join_date")
+  retireDate     DateTime? @map("retire_date")
+  remarks        String?
+  isActive       Boolean   @default(true) @map("is_active")
+  version        Int       @default(1)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@unique([tenantId, employeeCode])
+  @@index([tenantId, employeeCode])
+  @@index([tenantId, isActive])
+  @@index([tenantId, joinDate])
+  @@map("employees")
+}

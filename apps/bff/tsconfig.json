@@ -18,6 +18,7 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
+      "@procure/contracts/*": ["../../packages/contracts/src/*"],
       "@epm/contracts/*": ["../../packages/contracts/src/*"]
     }
   },

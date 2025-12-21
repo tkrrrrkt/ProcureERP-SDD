@@ -83,6 +83,29 @@ STEP 12: 統合テスト & 完了
 - v0 隔離ルールを理解
 - Contracts-first 順序を理解
 
+### 最小ワークフロー
+
+```
+Phase 0 (オプション): プロジェクト設定
+  ├─ /kiro/steering              # ステアリング生成/更新
+  └─ /kiro/steering-custom       # カスタムステアリング作成
+
+Phase 1: 仕様定義
+  ├─ /kiro/spec-init "説明"      # 仕様の初期化
+  ├─ /kiro/spec-requirements <feature>  # 要件定義
+  ├─ /kiro/validate-gap <feature>      # ギャップ分析（オプション）
+  ├─ /kiro/spec-design <feature> [-y]  # 技術設計
+  ├─ /kiro/validate-design <feature>   # 設計レビュー（オプション）
+  └─ /kiro/spec-tasks <feature> [-y]   # 実装タスク生成
+
+Phase 2: 実装
+  ├─ /kiro/spec-impl <feature> [tasks]  # 実装実行
+  └─ /kiro/validate-impl <feature>       # 実装検証（オプション）
+
+ステータス確認（いつでも使用可能）
+  └─ /kiro/spec-status <feature>  # 進捗確認
+```
+
 ---
 
 ## STEP 1: Requirements 作成
@@ -569,6 +592,8 @@ v0 で UI を高速生成する。
 ### 入力
 
 - `v0-prompt.md`
+#### 例
+SteeringファイルにあるV0関係のファイルと、開発プロセス定義資料他、Steeringフォルダ配下の資料を全て再度確認して、master-data/employee-masterの社員マスタに応じたV0へ投げるプロンプトをルール通りつくってもらえますか。
 
 ### 作業内容
 

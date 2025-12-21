@@ -26,6 +26,7 @@ import {
   Package,
   BarChart3,
   TrendingUp,
+  UserCircle,
   type LucideIcon,
 } from "lucide-react"
 
@@ -115,6 +116,13 @@ export const menu: MenuItem[] = [
         labelJa: "組織",
         path: "/master-data/organizations",
         icon: Building2,
+      },
+      {
+        id: "employee-master",
+        label: "Employees",
+        labelJa: "社員",
+        path: "/master-data/employee-master",
+        icon: UserCircle,
       },
     ],
   },

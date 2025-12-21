@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "steering/structure.md",
+                "file": "steering/development-process.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "structure"
+              "title": "development-process"
             }
           }
         ]
@@ -78,7 +78,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 200
   },
   "right": {
     "id": "acba1cb4dd3285b2",
@@ -94,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "steering/structure.md",
+                "file": "steering/development-process.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "structureへのバックリンク"
+              "title": "development-processへのバックリンク"
             }
           },
           {
@@ -113,12 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "steering/structure.md",
+                "file": "steering/development-process.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "structureからのアウトゴーイングリンク"
+              "title": "development-processからのアウトゴーイングリンク"
             }
           },
           {
@@ -156,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "steering/structure.md",
+                "file": "steering/development-process.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "structureのアウトライン"
+              "title": "development-processのアウトライン"
             }
           }
         ]
@@ -183,8 +183,20 @@
       "bases:Create new base": false
     }
   },
-  "active": "a64e2f7689561dcc",
+  "active": "4b5b264356bc2b32",
   "lastOpenFiles": [
+    "specs/master-data/employee-master/tasks.md",
+    "specs/master-data/employee-master/design-review.md",
+    "specs/master-data/employee-master/integration-test-guide.md",
+    "specs/master-data/employee-master/design.md",
+    "specs/master-data/employee-master/v0-prompt.md",
+    "steering/development-process.md",
+    "steering/procure-design-system.md",
+    "specs/master-data/employee-master/requirements.md",
+    "steering/structure.md",
+    "specs/master-data/employee-master/spec.json",
+    "specs/master-data/employee-master",
+    "specs/master-data",
     "steering/tech.md",
     "steering/product.md"
   ]
