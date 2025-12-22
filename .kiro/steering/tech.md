@@ -403,5 +403,69 @@ ProcurERPでは、UIの変更頻度とDomainの安定性を分離し、AI実装�
 
 ---
 
+## 15. ローカル開発環境（Non-Negotiable）
+
+### 15.1 サーバー起動
+
+開発時は以下の3サーバーを起動する：
+
+```bash
+pnpm dev:api   # Domain API: http://localhost:3002/api
+pnpm dev:bff   # BFF:        http://localhost:3001
+pnpm dev:web   # Web:        http://localhost:3000
+```
+
+### 15.2 ビルド構成の注意点（モノレポ + paths）
+
+**背景:**
+- `tsconfig.json`の`paths`設定（`@procure/contracts/*`等）により、TypeScriptコンパイラは外部パッケージも含めてビルドする
+- これにより、出力が`dist/apps/<app>/src/main.js`という構造になる
+
+**必須設定:**
+- `nest-cli.json`の`entryFile`は実際の出力パスに合わせる
+
+```json
+// apps/api/nest-cli.json
+{ "entryFile": "apps/api/src/main" }
+
+// apps/bff/nest-cli.json
+{ "entryFile": "apps/bff/src/main" }
+```
+
+**トラブルシュート:**
+- `Cannot find module 'dist/main'`エラー → `nest-cli.json`の`entryFile`を確認
+- ポート競合（EADDRINUSE）→ 既存プロセスを終了してから再起動
+- `.next`のロックエラー → `rm -rf apps/web/.next`で削除してから再起動
+
+### 15.3 クリーンスタート手順
+
+既存プロセスが残っている場合のクリーンスタート：
+
+```bash
+# 1. 既存プロセスの確認と終了
+netstat -ano | grep -E ":(3000|3001|3002)"
+taskkill //F //PID <pid>  # Windows
+# または
+kill -9 <pid>             # macOS/Linux
+
+# 2. キャッシュクリア（必要に応じて）
+rm -rf apps/web/.next
+rm -rf apps/api/dist apps/bff/dist
+
+# 3. ビルド＆起動
+pnpm build:api && pnpm build:bff
+pnpm dev:api & pnpm dev:bff & pnpm dev:web
+```
+
+### 15.4 動作確認URL
+
+| サービス | URL | 確認方法 |
+|---------|-----|----------|
+| Web（社員マスタ） | http://localhost:3000/master-data/employee-master | ブラウザ |
+| BFF API | http://localhost:3001/api/bff/master-data/employee-master | curl（要ヘッダー） |
+| Domain API | http://localhost:3002/api/master-data/employee-master | curl（要ヘッダー） |
+
+---
+
 技術は主役ではない。
 調達業務を支える「信頼できる基盤」であることが価値である。
