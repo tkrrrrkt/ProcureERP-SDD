@@ -135,6 +135,7 @@ export class EmployeeService {
     // 登録
     const employee = await this.employeeRepository.create({
       tenantId,
+      createdBy: userId, // 監査列
       data: {
         employeeCode: request.employeeCode,
         employeeName: request.employeeName,
@@ -237,6 +238,7 @@ export class EmployeeService {
       tenantId,
       employeeId,
       version: request.version,
+      updatedBy: userId, // 監査列
       data: {
         employeeCode: request.employeeCode,
         employeeName: request.employeeName,
@@ -292,6 +294,8 @@ export class EmployeeService {
       version: employee.version,
       createdAt: employee.createdAt.toISOString(),
       updatedAt: employee.updatedAt.toISOString(),
+      createdBy: employee.createdByLoginAccountId,
+      updatedBy: employee.updatedByLoginAccountId,
     };
   }
 

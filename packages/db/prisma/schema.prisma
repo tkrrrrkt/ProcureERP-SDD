@@ -35,19 +35,21 @@ datasource db {
 // =============================================================================
 
 model Employee {
-  id             String    @id @default(uuid())
-  tenantId       String    @map("tenant_id")
-  employeeCode   String    @map("employee_code")
-  employeeName   String    @map("employee_name")
-  employeeKanaName String  @map("employee_kana_name")
-  email          String?
-  joinDate       DateTime  @map("join_date")
-  retireDate     DateTime? @map("retire_date")
-  remarks        String?
-  isActive       Boolean   @default(true) @map("is_active")
-  version        Int       @default(1)
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  id                      String    @id @default(uuid())
+  tenantId                String    @map("tenant_id")
+  employeeCode            String    @map("employee_code")
+  employeeName            String    @map("employee_name")
+  employeeKanaName        String    @map("employee_kana_name")
+  email                   String?
+  joinDate                DateTime  @map("join_date")
+  retireDate              DateTime? @map("retire_date")
+  remarks                 String?
+  isActive                Boolean   @default(true) @map("is_active")
+  version                 Int       @default(1)
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  createdByLoginAccountId String?   @map("created_by_login_account_id")
+  updatedByLoginAccountId String?   @map("updated_by_login_account_id")
 
   @@unique([tenantId, employeeCode])
   @@index([tenantId, employeeCode])

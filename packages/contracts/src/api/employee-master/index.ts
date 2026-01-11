@@ -37,6 +37,8 @@ export interface EmployeeApiDto {
   version: number;
   createdAt: string; // ISO 8601
   updatedAt: string; // ISO 8601
+  createdBy: string | null; // login_account_id
+  updatedBy: string | null; // login_account_id
 }
 
 // =============================================================================

@@ -111,7 +111,16 @@ test_create_employee() {
   
   if [ "$http_code" = "201" ]; then
     employee_id=$(echo $body | jq -r '.employee.id')
-    print_pass "新規登録が成功 (employee_id: $employee_id)"
+    created_by=$(echo $body | jq -r '.employee.createdBy')
+    updated_by=$(echo $body | jq -r '.employee.updatedBy')
+
+    # 監査列の検証
+    if [ "$created_by" = "$USER_ID" ] && [ "$updated_by" = "$USER_ID" ]; then
+      print_pass "新規登録が成功 (employee_id: $employee_id, 監査列: OK)"
+    else
+      print_pass "新規登録が成功 (employee_id: $employee_id)"
+      print_fail "監査列が正しく設定されていません (createdBy: $created_by, updatedBy: $updated_by)"
+    fi
     echo "$employee_id" > /tmp/test_employee_id.txt
   else
     print_fail "新規登録が失敗 (HTTP $http_code)"
@@ -166,7 +175,16 @@ test_get_employee() {
   
   if [ "$http_code" = "200" ]; then
     employee_code=$(echo $body | jq -r '.employee.employeeCode')
-    print_pass "社員詳細取得が成功 (employee_code: $employee_code)"
+    created_by=$(echo $body | jq -r '.employee.createdBy')
+    updated_by=$(echo $body | jq -r '.employee.updatedBy')
+
+    # 監査列の存在確認
+    if [ "$created_by" != "null" ] && [ "$updated_by" != "null" ]; then
+      print_pass "社員詳細取得が成功 (employee_code: $employee_code, 監査列: OK)"
+    else
+      print_pass "社員詳細取得が成功 (employee_code: $employee_code)"
+      print_fail "監査列が取得できません (createdBy: $created_by, updatedBy: $updated_by)"
+    fi
   else
     print_fail "社員詳細取得が失敗 (HTTP $http_code)"
   fi
@@ -202,7 +220,15 @@ test_update_employee() {
   
   if [ "$http_code" = "200" ]; then
     version=$(echo $body | jq -r '.employee.version')
-    print_pass "更新が成功 (version: $version)"
+    updated_by=$(echo $body | jq -r '.employee.updatedBy')
+
+    # updatedBy の検証
+    if [ "$updated_by" = "$USER_ID" ]; then
+      print_pass "更新が成功 (version: $version, updatedBy: OK)"
+    else
+      print_pass "更新が成功 (version: $version)"
+      print_fail "updatedBy が正しく設定されていません (updatedBy: $updated_by)"
+    fi
   else
     print_fail "更新が失敗 (HTTP $http_code)"
     echo "$body" | jq '.'
@@ -284,6 +310,7 @@ main() {
 }
 
 main
+
 
 
 

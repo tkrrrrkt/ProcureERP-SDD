@@ -90,6 +90,7 @@ export class EmployeeRepository {
    */
   async create(params: {
     tenantId: string;
+    createdBy: string;
     data: {
       employeeCode: string;
       employeeName: string;
@@ -101,7 +102,7 @@ export class EmployeeRepository {
       isActive?: boolean;
     };
   }): Promise<Employee> {
-    const { tenantId, data } = params;
+    const { tenantId, createdBy, data } = params;
 
     return this.prisma.employee.create({
       data: {
@@ -115,6 +116,8 @@ export class EmployeeRepository {
         remarks: data.remarks ?? null,
         isActive: data.isActive ?? true,
         version: 1, // 初期バージョン
+        createdByLoginAccountId: createdBy, // 監査列
+        updatedByLoginAccountId: createdBy, // 監査列（作成時は同じ）
       },
     });
   }
@@ -126,6 +129,7 @@ export class EmployeeRepository {
     tenantId: string;
     employeeId: string;
     version: number;
+    updatedBy: string;
     data: {
       employeeCode: string;
       employeeName: string;
@@ -137,7 +141,7 @@ export class EmployeeRepository {
       isActive: boolean;
     };
   }): Promise<Employee | null> {
-    const { tenantId, employeeId, version, data } = params;
+    const { tenantId, employeeId, version, updatedBy, data } = params;
 
     try {
       // 楽観ロック: WHERE句に version を含める
@@ -158,6 +162,7 @@ export class EmployeeRepository {
           remarks: data.remarks ?? null,
           isActive: data.isActive,
           version: version + 1, // version increment
+          updatedByLoginAccountId: updatedBy, // 監査列
         },
       });
 
