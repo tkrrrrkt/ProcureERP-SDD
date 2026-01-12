@@ -65,7 +65,7 @@ function Header({
           </Tooltip>
         )}
         <div className="flex items-center gap-2">
-          <div className="text-lg font-bold text-primary">EPM</div>
+          <div className="text-lg font-bold text-primary">ProcureERP</div>
           <div className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">Trial</div>
         </div>
       </div>
@@ -136,7 +136,7 @@ function AppSidebar({ open, onToggle }: { open: boolean; onToggle: () => void })
       {/* Sidebar Footer */}
       <div className="border-t border-border p-3">
         <div className="text-xs text-muted-foreground text-center">
-          EPM SaaS v0.1.0
+          ProcureERP v0.1.0
         </div>
       </div>
     </aside>

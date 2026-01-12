@@ -4,120 +4,102 @@
 
 ## 概要
 
-モダンで洗練された、使いやすくシンプルなB2B向けエンタープライズSaaSのデザインシステムです。Deep Teal（プライマリー）とRoyal Indigo（セカンダリー）をベースカラーとし、統一感のあるプロフェッショナルなUIを実現します。
+モダンで洗練された、使いやすくシンプルなB2B向けエンタープライズSaaSのデザインシステムです。**Professional Blue（プライマリー）**と**Teal（セカンダリー/アクセント）**をベースカラーとし、統一感のあるプロフェッショナルなUIを実現します。
 
 ---
 
 ## カラーパレット
 
-### プライマリーカラー（Deep Teal）
+### 色空間について
+
+本デザインシステムは **OKLCH色空間** を採用しています。OKLCHは知覚的に均一な色空間であり、以下の利点があります：
+
+- 明度・彩度の調整が直感的
+- アクセシビリティ対応が容易
+- ダークモード変換が自然
+
+**OKLCH形式**: `oklch(L C H)` — L=明度(0-1), C=彩度(0-0.4), H=色相(0-360)
+
+### プライマリーカラー（Professional Blue）
 **用途**: 主要なアクション、ブランド表現、重要な要素の強調
 
-- **Primary 50**: `#f0fdfc` - 非常に薄い背景
-- **Primary 100**: `#ccfbf8` - 薄い背景、ホバー効果
-- **Primary 200**: `#99f6f0` - サブ背景
-- **Primary 300**: `#5eead4` - ライトアクセント
-- **Primary 400**: `#2dd4bf` - アクティブ状態
-- **Primary 500**: `#14b8a6` - **メインプライマリー（デフォルト）**
-- **Primary 600**: `#0d9488` - ホバー、アクティブ
-- **Primary 700**: `#0f766e` - 濃いアクセント
-- **Primary 800**: `#115e59` - 強調テキスト
-- **Primary 900**: `#134e4a` - 最も濃い
+| トークン | OKLCH値 | 用途 |
+|---------|---------|------|
+| `--primary` | `oklch(0.45 0.18 250)` | メインプライマリー（デフォルト） |
+| Light mode | `oklch(0.45 0.18 250)` | 標準 |
+| Dark mode | `oklch(0.55 0.2 250)` | ダークモード用（明度上昇） |
 
-**CSS変数**: `--primary: 174 72% 56%` (HSL)
+**CSS変数**: `--primary`, `--primary-foreground`
 
-### セカンダリーカラー（Royal Indigo）
+**特徴**: 信頼性・専門性・安定感を表現する青。調達業務における信頼関係を象徴。
+
+### セカンダリーカラー（Teal）
 **用途**: セカンダリーアクション、バッジ、補助的な強調、グラフ
 
-- **Secondary 50**: `#eef2ff` - 非常に薄い背景
-- **Secondary 100**: `#e0e7ff` - 薄い背景
-- **Secondary 200**: `#c7d2fe` - サブ背景
-- **Secondary 300**: `#a5b4fc` - ライトアクセント
-- **Secondary 400**: `#818cf8` - アクティブ状態
-- **Secondary 500**: `#6366f1` - **メインセカンダリー（デフォルト）**
-- **Secondary 600**: `#4f46e5` - ホバー、アクティブ
-- **Secondary 700**: `#4338ca` - 濃いアクセント
-- **Secondary 800**: `#3730a3` - 強調テキスト
-- **Secondary 900**: `#312e81` - 最も濃い
+| トークン | OKLCH値 | 用途 |
+|---------|---------|------|
+| `--secondary` | `oklch(0.95 0.05 180)` | 薄い背景（Light mode） |
+| `--secondary-foreground` | `oklch(0.25 0.1 180)` | テキスト（Light mode） |
+| Dark mode secondary | `oklch(0.25 0.1 180)` | 背景 |
+| Dark mode foreground | `oklch(0.95 0.05 180)` | テキスト |
 
-**CSS変数**: `--secondary: 239 84% 67%` (HSL)
+**CSS変数**: `--secondary`, `--secondary-foreground`
+
+### アクセントカラー（Teal）
+**用途**: ホバー効果、選択状態、視覚的アクセント
+
+| トークン | OKLCH値 | 用途 |
+|---------|---------|------|
+| `--accent` | `oklch(0.55 0.15 180)` | アクセント背景 |
+| `--accent-foreground` | `oklch(0.99 0 0)` | アクセントテキスト |
 
 ### セマンティックカラー
 
 #### Success（成功・完了）
-- **Success 50**: `#f0fdf4`
-- **Success 500**: `#22c55e` - **メイン成功色**
-- **Success 600**: `#16a34a`
-- **Success 700**: `#15803d`
+| トークン | OKLCH値 | 用途 |
+|---------|---------|------|
+| `--success` | `oklch(0.6 0.18 150)` | 成功メッセージ、完了状態 |
+| `--success-foreground` | `oklch(0.99 0 0)` | テキスト |
 
 **用途**: 成功メッセージ、完了状態、ポジティブなフィードバック
-**CSS変数**: `--success: 142 71% 45%` (HSL)
 
 #### Warning（警告・注意）
-- **Warning 50**: `#fffbeb`
-- **Warning 500**: `#f59e0b` - **メイン警告色**
-- **Warning 600**: `#d97706`
-- **Warning 700**: `#b45309`
+| トークン | OKLCH値 | 用途 |
+|---------|---------|------|
+| `--warning` | `oklch(0.7 0.15 70)` | 警告メッセージ |
+| `--warning-foreground` | `oklch(0.15 0 0)` | テキスト（暗色） |
 
 **用途**: 警告メッセージ、注意喚起、一時的な状態
-**CSS変数**: `--warning: 38 92% 50%` (HSL)
 
-#### Error（エラー・危険）
-- **Error 50**: `#fef2f2`
-- **Error 500**: `#ef4444` - **メインエラー色**
-- **Error 600**: `#dc2626`
-- **Error 700**: `#b91c1c`
+#### Destructive/Error（エラー・危険）
+| トークン | OKLCH値 | 用途 |
+|---------|---------|------|
+| `--destructive` | `oklch(0.55 0.22 25)` | エラーメッセージ、削除アクション |
+| `--destructive-foreground` | `oklch(0.99 0 0)` | テキスト |
 
 **用途**: エラーメッセージ、削除アクション、危険な操作
-**CSS変数**: `--destructive: 0 84% 60%` (HSL)
 
-#### Info（情報）
-- **Info 50**: `#eff6ff`
-- **Info 500**: `#3b82f6` - **メイン情報色**
-- **Info 600**: `#2563eb`
-- **Info 700**: `#1d4ed8`
+### ニュートラルカラー
 
-**用途**: 情報メッセージ、ヘルプテキスト、ガイダンス
-**CSS変数**: `--info: 221 83% 53%` (HSL)
+| トークン | OKLCH値 | 用途 |
+|---------|---------|------|
+| `--background` | `oklch(1 0 0)` | ページ背景 |
+| `--foreground` | `oklch(0.15 0 0)` | メインテキスト |
+| `--card` | `oklch(1 0 0)` | カード背景 |
+| `--muted` | `oklch(0.97 0.005 250)` | 薄い背景 |
+| `--muted-foreground` | `oklch(0.5 0.01 250)` | 補助テキスト |
+| `--border` | `oklch(0.92 0.005 250)` | ボーダー |
+| `--input` | `oklch(0.92 0.005 250)` | インプット背景 |
 
-### ニュートラルカラー（グレースケール）
+### チャートカラー
 
-- **Neutral 50**: `#fafafa` - 背景（最も薄い）
-- **Neutral 100**: `#f5f5f5` - カード背景
-- **Neutral 200**: `#e5e5e5` - ボーダー（薄い）
-- **Neutral 300**: `#d4d4d4` - ボーダー
-- **Neutral 400**: `#a3a3a3` - プレースホルダー
-- **Neutral 500**: `#737373` - 補助テキスト
-- **Neutral 600**: `#525252` - セカンダリーテキスト
-- **Neutral 700**: `#404040` - テキスト
-- **Neutral 800**: `#262626` - メインテキスト
-- **Neutral 900**: `#171717` - 最も濃いテキスト
-
-### グラデーションパターン
-
-#### Primary Gradient
-```css
-background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
-```
-**用途**: ヒーローセクション、CTAボタン、特別な強調エリア
-
-#### Secondary Gradient
-```css
-background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-```
-**用途**: セカンダリーヒーロー、バッジ、グラフビジュアライゼーション
-
-#### Neutral Gradient
-```css
-background: linear-gradient(135deg, #f5f5f5 0%, #e5e5e5 100%);
-```
-**用途**: 背景、サブセクション
-
-#### Success Gradient
-```css
-background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-```
-**用途**: 成功メッセージ、完了画面
+| トークン | OKLCH値 | 用途 |
+|---------|---------|------|
+| `--chart-1` | `oklch(0.45 0.18 250)` | Primary Blue |
+| `--chart-2` | `oklch(0.55 0.15 180)` | Teal |
+| `--chart-3` | `oklch(0.6 0.18 150)` | Success Green |
+| `--chart-4` | `oklch(0.7 0.15 70)` | Warning Yellow |
+| `--chart-5` | `oklch(0.55 0.22 25)` | Destructive Red |
 
 ---
 
@@ -126,8 +108,8 @@ background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
 ### フォントファミリー
 
 ```css
---font-sans: 'Geist', 'Geist Fallback', system-ui, -apple-system, sans-serif;
---font-mono: 'Geist Mono', 'Geist Mono Fallback', 'Courier New', monospace;
+--font-sans: "Geist", "Geist Fallback";
+--font-mono: "Geist Mono", "Geist Mono Fallback";
 ```
 
 **使用方法**:
@@ -175,7 +157,7 @@ Tailwindのスペーシングスケールを使用（4px基準）
 - `gap-4`: 1rem (16px) - **標準ギャップ**
 - `gap-6`: 1.5rem (24px) - 広めのギャップ
 
-**原則**: 
+**原則**:
 - コンポーネント内部: `p-4`, `p-6`, `gap-4`
 - セクション間: `p-8`, `gap-6`, `gap-8`
 - 任意の値 `p-[16px]` は避け、Tailwindのスケール `p-4` を使用
@@ -186,16 +168,20 @@ Tailwindのスペーシングスケールを使用（4px基準）
 
 ```css
 --radius: 0.5rem; /* 8px */
+--radius-sm: calc(var(--radius) - 4px);  /* 4px */
+--radius-md: calc(var(--radius) - 2px);  /* 6px */
+--radius-lg: var(--radius);               /* 8px */
+--radius-xl: calc(var(--radius) + 4px);  /* 12px */
 ```
 
 ### 使用パターン
 
-- `rounded-sm`: 0.125rem (2px) - 小さな要素
-- `rounded`: 0.25rem (4px) - ボタン、インプット（小）
-- `rounded-md`: 0.375rem (6px) - **標準（カード、ボタン）**
-- `rounded-lg`: 0.5rem (8px) - **推奨（カード、モーダル）**
-- `rounded-xl`: 0.75rem (12px) - 大きなカード
-- `rounded-2xl`: 1rem (16px) - ヒーローカード
+- `rounded-sm`: 4px - 小さな要素
+- `rounded`: 4px - ボタン、インプット（小）
+- `rounded-md`: 6px - **標準（カード、ボタン）**
+- `rounded-lg`: 8px - **推奨（カード、モーダル）**
+- `rounded-xl`: 12px - 大きなカード
+- `rounded-2xl`: 16px - ヒーローカード
 
 **推奨**: カードやモーダルには `rounded-lg` または `rounded-xl` を使用
 
@@ -210,14 +196,6 @@ Tailwindのスペーシングスケールを使用（4px基準）
 - `shadow-md`: 中程度の影 - 浮いたカード
 - `shadow-lg`: 大きな影 - モーダル、ドロップダウン
 - `shadow-xl`: 非常に大きな影 - オーバーレイ
-
-### カスタムシャドウ（CSS変数で定義済み）
-
-```css
---shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.08);
---shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.12);
---shadow-strong: 0 8px 24px rgba(0, 0, 0, 0.16);
-```
 
 **推奨**: カードには `shadow` または `shadow-md`、モーダルには `shadow-lg` を使用
 
@@ -234,7 +212,7 @@ Tailwindのスペーシングスケールを使用（4px基準）
 ```
 
 **スタイル**:
-- 背景: `bg-primary` (#14b8a6)
+- 背景: `bg-primary` (Blue)
 - テキスト: `text-primary-foreground` (白)
 - ホバー: `hover:bg-primary/90`
 - サイズ: `h-10 px-4 py-2`
@@ -250,7 +228,7 @@ Tailwindのスペーシングスケールを使用（4px基準）
 ```
 
 **スタイル**:
-- 背景: `bg-secondary` (#e5e5e5)
+- 背景: `bg-secondary` (薄いTeal)
 - テキスト: `text-secondary-foreground`
 - ホバー: `hover:bg-secondary/80`
 
@@ -296,7 +274,7 @@ Tailwindのスペーシングスケールを使用（4px基準）
 ```
 
 **スタイル**:
-- 背景: `bg-destructive` (エラー色)
+- 背景: `bg-destructive` (赤)
 - テキスト: `text-destructive-foreground`
 - ホバー: `hover:bg-destructive/90`
 
@@ -397,7 +375,7 @@ Tailwindのスペーシングスケールを使用（4px基準）
       <TableCell>
         <Badge variant="default">完了</Badge>
       </TableCell>
-      <TableCell>2025-11-09</TableCell>
+      <TableCell>2025-12-22</TableCell>
       <TableCell className="text-right">¥1,234</TableCell>
     </TableRow>
   </TableBody>
@@ -511,18 +489,18 @@ Tailwindのスペーシングスケールを使用（4px基準）
 ```
 
 **バリアント**:
-- `default`: プライマリーカラー（デフォルト）
-- `secondary`: セカンダリーカラー
+- `default`: プライマリーカラー（Blue）
+- `secondary`: セカンダリーカラー（Teal）
 - `outline`: アウトライン
 - `destructive`: エラー・警告
 
 ### カスタムカラーバッジ
 
 ```tsx
-<Badge className="bg-success text-white">完了</Badge>
-<Badge className="bg-warning text-white">保留</Badge>
-<Badge className="bg-error text-white">エラー</Badge>
-<Badge className="bg-secondary-500 text-white">レビュー中</Badge>
+<Badge className="bg-success text-success-foreground">完了</Badge>
+<Badge className="bg-warning text-warning-foreground">保留</Badge>
+<Badge className="bg-destructive text-destructive-foreground">エラー</Badge>
+<Badge className="bg-accent text-accent-foreground">レビュー中</Badge>
 ```
 
 ---
@@ -552,7 +530,7 @@ Tailwindのスペーシングスケールを使用（4px基準）
 </Alert>
 
 {/* Warning */}
-<Alert className="border-warning bg-warning/10 text-warning">
+<Alert className="border-warning bg-warning/10 text-warning-foreground">
   <AlertCircle className="h-4 w-4" />
   <AlertTitle>警告</AlertTitle>
   <AlertDescription>変更が保存されていません。</AlertDescription>
@@ -620,13 +598,13 @@ toast({
 ```tsx
 <Tabs defaultValue="tab1" className="w-full">
   <TabsList className="bg-transparent border-b border-border rounded-none h-auto p-0">
-    <TabsTrigger 
+    <TabsTrigger
       value="tab1"
       className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
     >
       概要
     </TabsTrigger>
-    <TabsTrigger 
+    <TabsTrigger
       value="tab2"
       className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
     >
@@ -760,7 +738,7 @@ toast({
 ```tsx
 <Progress value={60} className="w-full [&>div]:bg-success" />
 <Progress value={30} className="w-full [&>div]:bg-warning" />
-<Progress value={90} className="w-full [&>div]:bg-secondary-500" />
+<Progress value={90} className="w-full [&>div]:bg-accent" />
 ```
 
 ---
@@ -777,14 +755,14 @@ toast({
       {/* ナビゲーション */}
     </nav>
   </aside>
-  
+
   {/* メインコンテンツ */}
   <div className="flex-1 flex flex-col">
     {/* ヘッダー */}
     <header className="h-16 border-b border-border bg-background px-6 flex items-center justify-between">
       {/* ヘッダーコンテンツ */}
     </header>
-    
+
     {/* メインエリア */}
     <main className="flex-1 overflow-auto p-6">
       {/* コンテンツ */}
@@ -812,7 +790,7 @@ toast({
   <div className="lg:col-span-2">
     <Card>メインコンテンツ</Card>
   </div>
-  
+
   {/* サイドバー（1カラム分） */}
   <div>
     <Card>サイドバーコンテンツ</Card>
@@ -852,18 +830,13 @@ import { Search, Bell, User, Settings, Menu, Plus, Edit, Trash2, Check, X, Chevr
 
 全てのコンポーネントはダークモードに自動対応します。カラーはCSS変数で定義されており、`dark:`プレフィックスは不要です。
 
-### ダークモード用カラー変数（自動適用）
+### ダークモード切替
 
-```css
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: 222 47% 11%;
-    --foreground: 213 31% 91%;
-    --card: 222 47% 11%;
-    --card-foreground: 213 31% 91%;
-    /* その他の変数も自動で切り替わる */
-  }
-}
+`.dark` クラスをルート要素に付与することでダークモードが有効になります。
+
+```tsx
+// 例: Next.js App Router
+<html lang="ja" className={isDark ? "dark" : ""}>
 ```
 
 ---
@@ -872,11 +845,12 @@ import { Search, Bell, User, Settings, Menu, Plus, Edit, Trash2, Check, X, Chevr
 
 ### 必須ルール
 
-1. **カラーは必ずデザインシステムのパレットから選択する**
+1. **カラーは必ずデザインシステムのトークンから選択する**
    - プライマリー: `bg-primary`, `text-primary`, `border-primary`
-   - セカンダリー: `bg-secondary-500`, `text-secondary-600`
+   - セカンダリー: `bg-secondary`, `text-secondary-foreground`
+   - アクセント: `bg-accent`, `text-accent-foreground`
    - セマンティック: `bg-success`, `bg-warning`, `bg-destructive`
-   - 任意の色 `bg-[#14b8a6]` は使用しない
+   - 任意の色 `bg-[#3b82f6]` は使用しない
 
 2. **コンポーネントはshadcn/uiを使用する**
    - Button, Card, Input, Select, Dialog等、既存コンポーネントを活用
@@ -905,7 +879,7 @@ import { Search, Bell, User, Settings, Menu, Plus, Edit, Trash2, Check, X, Chevr
 ### コード例（推奨パターン）
 
 ```tsx
-// ✅ 良い例
+// 良い例
 <Card className="rounded-lg shadow-md">
   <CardHeader>
     <CardTitle className="text-2xl font-semibold text-foreground">
@@ -915,7 +889,7 @@ import { Search, Bell, User, Settings, Menu, Plus, Edit, Trash2, Check, X, Chevr
   <CardContent className="space-y-4">
     <div className="flex items-center justify-between">
       <span className="text-sm text-muted-foreground">ステータス</span>
-      <Badge className="bg-success text-white">進行中</Badge>
+      <Badge className="bg-success text-success-foreground">進行中</Badge>
     </div>
   </CardContent>
   <CardFooter className="flex gap-2">
@@ -929,15 +903,9 @@ import { Search, Bell, User, Settings, Menu, Plus, Edit, Trash2, Check, X, Chevr
   </CardFooter>
 </Card>
 
-// ❌ 悪い例
-<div style={{ backgroundColor: '#14b8a6', padding: '16px', borderRadius: '8px' }}>
+// 悪い例（任意の値を使用）
+<div style={{ backgroundColor: '#3b82f6', padding: '16px', borderRadius: '8px' }}>
   <h2 style={{ fontSize: '24px', fontWeight: 600 }}>プロジェクト概要</h2>
-  <div style={{ marginTop: '16px' }}>
-    <span>ステータス</span>
-    <span style={{ backgroundColor: '#22c55e', color: 'white', padding: '4px 8px' }}>
-      進行中
-    </span>
-  </div>
 </div>
 ```
 
@@ -947,9 +915,10 @@ import { Search, Bell, User, Settings, Menu, Plus, Edit, Trash2, Check, X, Chevr
 
 新しい画面・コンポーネントを作成する際は、以下を確認してください：
 
-- [ ] プライマリーカラー（Deep Teal）またはセカンダリーカラー（Royal Indigo）を使用している
-- [ ] セマンティックカラー（Success, Warning, Error）を適切に使用している
-- [ ] 任意の色値（`bg-[#xxx]`）ではなく、定義済みのカラークラスを使用している
+- [ ] プライマリーカラー（Professional Blue）を主要アクションに使用している
+- [ ] セカンダリー/アクセントカラー（Teal）を補助要素に使用している
+- [ ] セマンティックカラー（Success, Warning, Destructive）を適切に使用している
+- [ ] 任意の色値（`bg-[#xxx]`）ではなく、定義済みのカラートークンを使用している
 - [ ] shadcn/uiコンポーネント（Button, Card, Input等）を活用している
 - [ ] Tailwindのスペーシングスケール（`p-4`, `gap-6`等）を使用している
 - [ ] Flexboxを優先し、必要な場合のみGridを使用している
@@ -967,6 +936,21 @@ import { Search, Bell, User, Settings, Menu, Plus, Edit, Trash2, Check, X, Chevr
 
 ---
 
-**バージョン**: 1.0
-**最終更新**: 2025-12-21
+## 技術的制約
+
+### Tailwind CSS バージョン
+- 本プロジェクトは **Tailwind CSS v3** を使用
+- v0 生成時の CSS は v3 構文に変換が必要
+- 詳細は `.kiro/steering/v0-workflow.md` の「6. Tailwind CSS バージョン制約」を参照
+
+### CSS トークン定義場所
+- 正本: `apps/web/src/shared/ui/tokens/globals.css`
+- Tailwind 設定: `apps/web/tailwind.config.ts`
+
+---
+
+**バージョン**: 2.0
+**最終更新**: 2025-12-22
 **対象プロダクト**: ProcurERP（調達管理SaaS）
+**カラー体系**: Professional Blue (Primary) + Teal (Secondary/Accent)
+**CSS フレームワーク**: Tailwind CSS v3

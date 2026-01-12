@@ -2,7 +2,31 @@
   "permissions": {
     "allow": [
       "Skill(kiro:spec-tasks)",
-      "Skill(kiro:spec-tasks:*)"
+      "Skill(kiro:spec-tasks:*)",
+      "Bash(pnpm dev:api:*)",
+      "Bash(pnpm dev:bff:*)",
+      "Bash(pnpm dev:web:*)",
+      "Bash(pnpm build:api:*)",
+      "Bash(pnpm build:bff:*)",
+      "Bash(taskkill:*)",
+      "Bash(if exist \"C:\\10_dev\\ProcureERP-SDD\\apps\\web\\.next\" rmdir /s /q \"C:\\10_dev\\ProcureERP-SDD\\apps\\web\\.next\")",
+      "Bash(netstat:*)",
+      "Bash(curl:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfix: NestJS nest-cli.json entryFile path for monorepo build\n\n- apps/api/nest-cli.json: entryFile を \"apps/api/src/main\" に修正\n- apps/bff/nest-cli.json: entryFile を \"apps/bff/src/main\" に修正\n- tech.md: ローカル開発環境セクション（15章）を追加\n  - サーバー起動コマンド\n  - ビルド構成の注意点（モノレポ + paths）\n  - クリーンスタート手順\n  - 動作確認URL\n\ntsconfig.json の paths 設定により dist 出力が深い構造になる問題を解決\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push:*)",
+      "Bash(pnpm build:web:*)",
+      "Bash(npx prisma migrate create:*)",
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat: add audit columns to employee master\n\n監査列（created_by_login_account_id / updated_by_login_account_id）を社員マスタに追加。\n説明責任・内部統制（J-SOX）対応のため、誰がマスタを登録/更新したかを追跡可能に。\n\n## 変更内容\n\n### DB層\n- Migration追加: 監査列を employees テーブルに追加（Phase 1: FK制約なし）\n- Prisma Schema更新: createdByLoginAccountId / updatedByLoginAccountId を追加\n\n### Contracts層\n- API Contracts更新: EmployeeApiDto に createdBy / updatedBy を追加\n- BFF Contracts更新: EmployeeDto に createdBy / updatedBy を追加\n\n### 実装層\n- Repository更新: create/update時に監査列を設定\n- Service更新: userId を監査列に設定（既存パラメータを活用）\n\n### 仕様書\n- 仕様概要作成: 01_社員・組織・部門・アカウント・権限 仕様概要.md\n  - QA壁打ち結果を全て反映（Q-001 〜 Q-010）\n  - 設計判断の根拠を明記（join_date命名、employee_name_kana必須化等）\n- エンティティ定義更新: 監査列、楽観ロック、インデックス定義を追加\n\n### テスト\n- 統合テスト更新: 監査列の検証を追加\n  - 新規登録時: createdBy/updatedBy が USER_ID と一致\n  - 詳細取得時: 監査列が null でないこと\n  - 更新時: updatedBy が USER_ID と一致\n\n## 実装方針\n\n- Phase 1（本コミット）: FK制約なしで監査列を追加（login_accounts未実装のため）\n- Phase 2（将来）: login_accounts実装後にFK制約を追加\n- アプリケーション層でバリデーションにより実質的に必須化\n\n## 横展開\n\n本実装パターンは他マスタエンティティへの横展開テンプレートとして利用可能。\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(npx prisma migrate:*)",
+      "Skill(kiro:spec-design)",
+      "Skill(kiro:spec-design:*)",
+      "Read(//c/10_dev/sample/**)",
+      "Read(//c/**)"
+    ],
+    "additionalDirectories": [
+      "c:\\10_dev\\ProcureERP-SDD\\packages\\db\\prisma\\migrations"
     ]
   }
 }

@@ -590,3 +590,4 @@
   - `approvals.tasks.generated: true` を維持
   - 実装完了時は `ready_for_implementation: true` に更新
 
+

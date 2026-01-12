@@ -45,4 +45,45 @@ v0の生成物には必ず含める：
 ## 5. 禁止事項（よくある事故）
 - UIでビジネスルールを確定しない（designへ差し戻す）
 - UIで api DTO を使わない（bff DTOのみ）
-- “とりあえず fetch直書き” をしない（必ず HttpBffClient 経由）
+- "とりあえず fetch直書き" をしない（必ず HttpBffClient 経由）
+
+## 6. Tailwind CSS バージョン制約（Non-Negotiable）
+
+### 6.1 現行バージョン
+- 本プロジェクトは **Tailwind CSS v3** を使用
+- v0 生成時も必ず **v3 構文**で出力すること
+
+### 6.2 v3 構文ルール（必須）
+```css
+/* 正しい v3 構文 */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground; }
+}
+```
+
+### 6.3 禁止構文（v4 構文）
+以下は **Tailwind v4 構文** であり、本プロジェクトでは使用禁止：
+
+```css
+/* 禁止: v4 構文 */
+@import "tailwindcss";
+@import "tw-animate-css";
+@custom-variant dark (&:is(.dark *));
+@theme inline { ... }
+```
+
+### 6.4 v0 出力時の確認事項
+v0 が生成した CSS を取り込む際は以下を確認：
+1. `@import "tailwindcss"` → `@tailwind base/components/utilities` に変換
+2. `@theme inline` ブロック → 削除（tailwind.config.ts で設定済み）
+3. `@custom-variant` → 削除（v3 では不要）
+4. カラー値（OKLCH）はそのまま使用可能
+
+### 6.5 将来の移行
+- Tailwind v4 への移行は、プロジェクト全体で計画的に実施する
+- 移行時は `tech.md` および本ファイルを更新する

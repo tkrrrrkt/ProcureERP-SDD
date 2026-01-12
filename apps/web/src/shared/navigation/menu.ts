@@ -124,6 +124,13 @@ export const menu: MenuItem[] = [
         path: "/master-data/employee-master",
         icon: UserCircle,
       },
+      {
+        id: "business-partner",
+        label: "Business Partners",
+        labelJa: "取引先",
+        path: "/master-data/business-partner",
+        icon: Building2,
+      },
     ],
   },
   {

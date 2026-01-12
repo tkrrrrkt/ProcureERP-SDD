@@ -45,10 +45,16 @@ const config: Config = {
           DEFAULT: "var(--card)",
           foreground: "var(--card-foreground)",
         },
-        success: "var(--success)",
-        warning: "var(--warning)",
-        error: "var(--error)",
-        info: "var(--info)",
+        success: {
+          DEFAULT: "var(--success)",
+          foreground: "var(--success-foreground)",
+        },
+        warning: {
+          DEFAULT: "var(--warning)",
+          foreground: "var(--warning-foreground)",
+        },
+        error: "var(--destructive)",
+        info: "var(--primary)",
         chart: {
           "1": "var(--chart-1)",
           "2": "var(--chart-2)",
