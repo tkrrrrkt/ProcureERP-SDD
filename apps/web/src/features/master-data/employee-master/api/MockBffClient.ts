@@ -13,6 +13,15 @@ import type {
   CreateEmployeeResponse,
   UpdateEmployeeRequest,
   UpdateEmployeeResponse,
+  EmployeeAssignmentDto,
+  ListAssignmentsResponse,
+  CreateAssignmentRequest,
+  CreateAssignmentResponse,
+  UpdateAssignmentRequest,
+  UpdateAssignmentResponse,
+  DeleteAssignmentResponse,
+  DepartmentOptionDto,
+  ListActiveDepartmentsResponse,
 } from './BffClient';
 
 // =============================================================================
@@ -33,6 +42,8 @@ const initialMockEmployees: EmployeeDto[] = [
     version: 1,
     createdAt: '2020-03-15T10:00:00.000Z',
     updatedAt: '2024-01-10T14:30:00.000Z',
+    createdBy: 'system',
+    updatedBy: 'admin',
   },
   {
     id: '550e8400-e29b-41d4-a716-446655440002',
@@ -47,6 +58,8 @@ const initialMockEmployees: EmployeeDto[] = [
     version: 2,
     createdAt: '2019-06-15T10:00:00.000Z',
     updatedAt: '2024-02-20T09:15:00.000Z',
+    createdBy: 'system',
+    updatedBy: 'admin',
   },
   {
     id: '550e8400-e29b-41d4-a716-446655440003',
@@ -61,6 +74,8 @@ const initialMockEmployees: EmployeeDto[] = [
     version: 1,
     createdAt: '2021-09-15T10:00:00.000Z',
     updatedAt: '2021-09-15T10:00:00.000Z',
+    createdBy: 'system',
+    updatedBy: 'system',
   },
   {
     id: '550e8400-e29b-41d4-a716-446655440004',
@@ -75,6 +90,8 @@ const initialMockEmployees: EmployeeDto[] = [
     version: 3,
     createdAt: '2018-03-15T10:00:00.000Z',
     updatedAt: '2023-12-31T16:00:00.000Z',
+    createdBy: 'system',
+    updatedBy: 'admin',
   },
   {
     id: '550e8400-e29b-41d4-a716-446655440005',
@@ -89,6 +106,8 @@ const initialMockEmployees: EmployeeDto[] = [
     version: 1,
     createdAt: '2022-01-05T10:00:00.000Z',
     updatedAt: '2022-01-05T10:00:00.000Z',
+    createdBy: 'system',
+    updatedBy: 'system',
   },
   {
     id: '550e8400-e29b-41d4-a716-446655440006',
@@ -103,6 +122,8 @@ const initialMockEmployees: EmployeeDto[] = [
     version: 1,
     createdAt: '2023-05-20T10:00:00.000Z',
     updatedAt: '2023-05-20T10:00:00.000Z',
+    createdBy: 'system',
+    updatedBy: 'system',
   },
   {
     id: '550e8400-e29b-41d4-a716-446655440007',
@@ -117,6 +138,124 @@ const initialMockEmployees: EmployeeDto[] = [
     version: 2,
     createdAt: '2020-09-01T10:00:00.000Z',
     updatedAt: '2024-03-01T11:20:00.000Z',
+    createdBy: 'system',
+    updatedBy: 'admin',
+  },
+];
+
+// =============================================================================
+// Mock Assignment Data
+// =============================================================================
+
+const initialMockAssignments: EmployeeAssignmentDto[] = [
+  {
+    id: 'asgn-001',
+    employeeId: '550e8400-e29b-41d4-a716-446655440001',
+    departmentStableId: 'dept-stable-001',
+    departmentCode: 'PUR',
+    departmentName: '購買部',
+    assignmentType: 'primary',
+    assignmentTypeLabel: '主務',
+    allocationRatio: 100,
+    title: '部長',
+    effectiveDate: '2023-04-01',
+    expiryDate: null,
+    isCurrent: true,
+    isActive: true,
+    version: 1,
+    createdAt: '2023-04-01T00:00:00.000Z',
+    updatedAt: '2023-04-01T00:00:00.000Z',
+  },
+  {
+    id: 'asgn-002',
+    employeeId: '550e8400-e29b-41d4-a716-446655440001',
+    departmentStableId: 'dept-stable-002',
+    departmentCode: 'ADM',
+    departmentName: '総務部',
+    assignmentType: 'secondary',
+    assignmentTypeLabel: '兼務',
+    allocationRatio: 20,
+    title: null,
+    effectiveDate: '2024-01-01',
+    expiryDate: '2024-12-31',
+    isCurrent: true,
+    isActive: true,
+    version: 1,
+    createdAt: '2024-01-01T00:00:00.000Z',
+    updatedAt: '2024-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'asgn-003',
+    employeeId: '550e8400-e29b-41d4-a716-446655440002',
+    departmentStableId: 'dept-stable-003',
+    departmentCode: 'ACC',
+    departmentName: '経理部',
+    assignmentType: 'primary',
+    assignmentTypeLabel: '主務',
+    allocationRatio: 100,
+    title: '課長',
+    effectiveDate: '2022-04-01',
+    expiryDate: null,
+    isCurrent: true,
+    isActive: true,
+    version: 1,
+    createdAt: '2022-04-01T00:00:00.000Z',
+    updatedAt: '2022-04-01T00:00:00.000Z',
+  },
+];
+
+// =============================================================================
+// Mock Department Data
+// =============================================================================
+
+const mockDepartments: DepartmentOptionDto[] = [
+  {
+    stableId: 'dept-stable-001',
+    departmentCode: 'PUR',
+    departmentName: '購買部',
+    hierarchyPath: '/PUR',
+    hierarchyLevel: 1,
+    parentStableId: null,
+  },
+  {
+    stableId: 'dept-stable-002',
+    departmentCode: 'ADM',
+    departmentName: '総務部',
+    hierarchyPath: '/ADM',
+    hierarchyLevel: 1,
+    parentStableId: null,
+  },
+  {
+    stableId: 'dept-stable-003',
+    departmentCode: 'ACC',
+    departmentName: '経理部',
+    hierarchyPath: '/ACC',
+    hierarchyLevel: 1,
+    parentStableId: null,
+  },
+  {
+    stableId: 'dept-stable-004',
+    departmentCode: 'DEV',
+    departmentName: '開発部',
+    hierarchyPath: '/DEV',
+    hierarchyLevel: 1,
+    parentStableId: null,
+  },
+  {
+    stableId: 'dept-stable-005',
+    departmentCode: 'DEV-1',
+    departmentName: '開発１課',
+    hierarchyPath: '/DEV/DEV-1',
+    hierarchyLevel: 2,
+    parentStableId: 'dept-stable-004',
+  },
+  {
+    stableId: 'dept-stable-006',
+    departmentCode: 'DEV-2',
+    departmentName: '開発２課',
+    hierarchyPath: '/DEV/DEV-2',
+    hierarchyLevel: 2,
+    parentStableId: 'dept-stable-004',
   },
 ];
 
@@ -126,6 +265,7 @@ const initialMockEmployees: EmployeeDto[] = [
 
 export class MockBffClient implements BffClient {
   private employees: EmployeeDto[] = [...initialMockEmployees];
+  private assignments: EmployeeAssignmentDto[] = [...initialMockAssignments];
 
   /**
    * Simulate API delay
@@ -251,6 +391,8 @@ export class MockBffClient implements BffClient {
       version: 1,
       createdAt: now,
       updatedAt: now,
+      createdBy: 'demo-user',
+      updatedBy: 'demo-user',
     };
 
     this.employees.push(employee);
@@ -311,10 +453,261 @@ export class MockBffClient implements BffClient {
       isActive: request.isActive,
       version: request.version + 1,
       updatedAt: new Date().toISOString(),
+      updatedBy: 'demo-user',
     };
 
     this.employees[index] = employee;
 
     return { employee };
+  }
+
+  // ===========================================================================
+  // Assignment Methods
+  // ===========================================================================
+
+  /**
+   * List assignments for an employee
+   */
+  async listAssignments(employeeId: string): Promise<ListAssignmentsResponse> {
+    await this.delay(400);
+
+    const items = this.assignments
+      .filter((a) => a.employeeId === employeeId && a.isActive)
+      .sort((a, b) => new Date(b.effectiveDate).getTime() - new Date(a.effectiveDate).getTime());
+
+    return { items };
+  }
+
+  /**
+   * Create new assignment
+   */
+  async createAssignment(
+    employeeId: string,
+    request: CreateAssignmentRequest,
+  ): Promise<CreateAssignmentResponse> {
+    await this.delay(600);
+
+    // Check employee exists
+    const employee = this.employees.find((e) => e.id === employeeId);
+    if (!employee) {
+      throw new Error('社員が見つかりません (EMPLOYEE_NOT_FOUND)');
+    }
+
+    // Validate date range
+    if (request.expiryDate) {
+      const effectiveDate = new Date(request.effectiveDate);
+      const expiryDate = new Date(request.expiryDate);
+      if (expiryDate <= effectiveDate) {
+        throw new Error('有効終了日は有効開始日より後の日付を指定してください (INVALID_DATE_RANGE)');
+      }
+    }
+
+    // Check primary overlap
+    if (request.assignmentType === 'primary') {
+      const overlap = this.checkPrimaryOverlap(
+        employeeId,
+        request.effectiveDate,
+        request.expiryDate,
+      );
+      if (overlap) {
+        throw new Error('同時期に既に主務が設定されています (DUPLICATE_PRIMARY_ASSIGNMENT)');
+      }
+    }
+
+    // Find department
+    const dept = mockDepartments.find((d) => d.stableId === request.departmentStableId);
+    if (!dept) {
+      throw new Error('部門が見つかりません (DEPARTMENT_NOT_FOUND)');
+    }
+
+    const now = new Date().toISOString();
+    const assignment: EmployeeAssignmentDto = {
+      id: this.generateId(),
+      employeeId,
+      departmentStableId: request.departmentStableId,
+      departmentCode: dept.departmentCode,
+      departmentName: dept.departmentName,
+      assignmentType: request.assignmentType,
+      assignmentTypeLabel: request.assignmentType === 'primary' ? '主務' : '兼務',
+      allocationRatio: request.allocationRatio ?? null,
+      title: request.title ?? null,
+      effectiveDate: request.effectiveDate,
+      expiryDate: request.expiryDate ?? null,
+      isCurrent: this.calculateIsCurrent(request.effectiveDate, request.expiryDate ?? null),
+      isActive: true,
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    this.assignments.push(assignment);
+    return { assignment };
+  }
+
+  /**
+   * Update assignment
+   */
+  async updateAssignment(
+    employeeId: string,
+    assignmentId: string,
+    request: UpdateAssignmentRequest,
+  ): Promise<UpdateAssignmentResponse> {
+    await this.delay(600);
+
+    const index = this.assignments.findIndex(
+      (a) => a.id === assignmentId && a.employeeId === employeeId && a.isActive,
+    );
+    if (index === -1) {
+      throw new Error('所属情報が見つかりません (ASSIGNMENT_NOT_FOUND)');
+    }
+
+    const existing = this.assignments[index];
+
+    // Optimistic locking
+    if (existing.version !== request.version) {
+      throw new Error('他のユーザーによって更新されています (OPTIMISTIC_LOCK_ERROR)');
+    }
+
+    // Validate date range
+    if (request.expiryDate) {
+      const effectiveDate = new Date(request.effectiveDate);
+      const expiryDate = new Date(request.expiryDate);
+      if (expiryDate <= effectiveDate) {
+        throw new Error('有効終了日は有効開始日より後の日付を指定してください (INVALID_DATE_RANGE)');
+      }
+    }
+
+    // Check primary overlap (excluding self)
+    if (request.assignmentType === 'primary') {
+      const overlap = this.checkPrimaryOverlap(
+        employeeId,
+        request.effectiveDate,
+        request.expiryDate,
+        assignmentId,
+      );
+      if (overlap) {
+        throw new Error('同時期に既に主務が設定されています (DUPLICATE_PRIMARY_ASSIGNMENT)');
+      }
+    }
+
+    // Find department
+    const dept = mockDepartments.find((d) => d.stableId === request.departmentStableId);
+    if (!dept) {
+      throw new Error('部門が見つかりません (DEPARTMENT_NOT_FOUND)');
+    }
+
+    const assignment: EmployeeAssignmentDto = {
+      ...existing,
+      departmentStableId: request.departmentStableId,
+      departmentCode: dept.departmentCode,
+      departmentName: dept.departmentName,
+      assignmentType: request.assignmentType,
+      assignmentTypeLabel: request.assignmentType === 'primary' ? '主務' : '兼務',
+      allocationRatio: request.allocationRatio ?? null,
+      title: request.title ?? null,
+      effectiveDate: request.effectiveDate,
+      expiryDate: request.expiryDate ?? null,
+      isCurrent: this.calculateIsCurrent(request.effectiveDate, request.expiryDate ?? null),
+      version: request.version + 1,
+      updatedAt: new Date().toISOString(),
+    };
+
+    this.assignments[index] = assignment;
+    return { assignment };
+  }
+
+  /**
+   * Delete assignment (soft delete)
+   */
+  async deleteAssignment(
+    employeeId: string,
+    assignmentId: string,
+    version: number,
+  ): Promise<DeleteAssignmentResponse> {
+    await this.delay(400);
+
+    const index = this.assignments.findIndex(
+      (a) => a.id === assignmentId && a.employeeId === employeeId && a.isActive,
+    );
+    if (index === -1) {
+      throw new Error('所属情報が見つかりません (ASSIGNMENT_NOT_FOUND)');
+    }
+
+    const existing = this.assignments[index];
+
+    // Optimistic locking
+    if (existing.version !== version) {
+      throw new Error('他のユーザーによって更新されています (OPTIMISTIC_LOCK_ERROR)');
+    }
+
+    // Soft delete
+    this.assignments[index] = {
+      ...existing,
+      isActive: false,
+      version: version + 1,
+      updatedAt: new Date().toISOString(),
+    };
+
+    return { success: true };
+  }
+
+  /**
+   * List active departments
+   */
+  async listActiveDepartments(): Promise<ListActiveDepartmentsResponse> {
+    await this.delay(300);
+    return { items: [...mockDepartments] };
+  }
+
+  // ===========================================================================
+  // Helper Methods for Assignments
+  // ===========================================================================
+
+  /**
+   * Check if date range overlaps with existing primary assignment
+   */
+  private checkPrimaryOverlap(
+    employeeId: string,
+    effectiveDate: string,
+    expiryDate?: string | null,
+    excludeId?: string,
+  ): boolean {
+    const newStart = new Date(effectiveDate);
+    const newEnd = expiryDate ? new Date(expiryDate) : null;
+
+    return this.assignments.some((a) => {
+      if (a.employeeId !== employeeId) return false;
+      if (!a.isActive) return false;
+      if (a.assignmentType !== 'primary') return false;
+      if (excludeId && a.id === excludeId) return false;
+
+      const existingStart = new Date(a.effectiveDate);
+      const existingEnd = a.expiryDate ? new Date(a.expiryDate) : null;
+
+      // Check overlap
+      const startOk = existingEnd === null || newStart <= existingEnd;
+      const endOk = newEnd === null || existingStart <= newEnd;
+
+      return startOk && endOk;
+    });
+  }
+
+  /**
+   * Calculate if assignment is currently effective
+   */
+  private calculateIsCurrent(effectiveDate: string, expiryDate: string | null): boolean {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const start = new Date(effectiveDate);
+    start.setHours(0, 0, 0, 0);
+
+    if (start > today) return false;
+    if (expiryDate === null) return true;
+
+    const end = new Date(expiryDate);
+    end.setHours(0, 0, 0, 0);
+
+    return today <= end;
   }
 }

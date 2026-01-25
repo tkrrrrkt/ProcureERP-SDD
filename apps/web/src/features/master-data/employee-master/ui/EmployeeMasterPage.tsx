@@ -7,11 +7,15 @@ import { AlertCircle } from 'lucide-react';
 import { EmployeeList } from './EmployeeList';
 import { EmployeeSearchBar } from './EmployeeSearchBar';
 import { EmployeeFormDialog } from './EmployeeFormDialog';
+import { EmployeeDetailDialog } from './EmployeeDetailDialog';
 import { HttpBffClient } from '../api/HttpBffClient';
+import { MockBffClient } from '../api/MockBffClient';
 import type { EmployeeDto, EmployeeSortBy, SortOrder, BffClient } from '../api/BffClient';
 
-// Use HttpBffClient for production
-const bffClient: BffClient = new HttpBffClient();
+// Toggle between Mock and Http client for development/production
+// Set to true to use MockBffClient (no backend required)
+const USE_MOCK_CLIENT = true;
+const bffClient: BffClient = USE_MOCK_CLIENT ? new MockBffClient() : new HttpBffClient();
 
 export function EmployeeMasterPage() {
   const [employees, setEmployees] = useState<EmployeeDto[]>([]);
@@ -33,7 +37,7 @@ export function EmployeeMasterPage() {
 
   // Dialog state
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [editingEmployee, setEditingEmployee] = useState<EmployeeDto | null>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<EmployeeDto | null>(null);
 
   // Fetch employees
   const fetchEmployees = useCallback(async () => {
@@ -87,9 +91,9 @@ export function EmployeeMasterPage() {
     setPage(1); // Reset to first page on page size change
   };
 
-  // Handle row click (open edit dialog)
+  // Handle row click (open detail dialog)
   const handleRowClick = (employee: EmployeeDto) => {
-    setEditingEmployee(employee);
+    setSelectedEmployee(employee);
   };
 
   // Handle create success
@@ -98,10 +102,19 @@ export function EmployeeMasterPage() {
     fetchEmployees();
   };
 
-  // Handle edit success
-  const handleEditSuccess = () => {
-    setEditingEmployee(null);
+  // Handle detail dialog update (employee was edited)
+  const handleDetailUpdate = () => {
+    // Refresh the list and the selected employee
     fetchEmployees();
+    // Also refresh the selected employee data
+    if (selectedEmployee) {
+      bffClient.getEmployee(selectedEmployee.id).then((response) => {
+        setSelectedEmployee(response.employee);
+      }).catch(() => {
+        // If employee no longer exists, close the dialog
+        setSelectedEmployee(null);
+      });
+    }
   };
 
   return (
@@ -158,14 +171,13 @@ export function EmployeeMasterPage() {
         bffClient={bffClient}
       />
 
-      {/* Edit Dialog */}
-      {editingEmployee && (
-        <EmployeeFormDialog
-          mode="edit"
-          employee={editingEmployee}
-          open={!!editingEmployee}
-          onOpenChange={(open) => !open && setEditingEmployee(null)}
-          onSuccess={handleEditSuccess}
+      {/* Detail Dialog (with tabs: Basic Info, Assignments) */}
+      {selectedEmployee && (
+        <EmployeeDetailDialog
+          employee={selectedEmployee}
+          open={!!selectedEmployee}
+          onOpenChange={(open) => !open && setSelectedEmployee(null)}
+          onUpdate={handleDetailUpdate}
           bffClient={bffClient}
         />
       )}

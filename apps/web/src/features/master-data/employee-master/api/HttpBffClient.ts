@@ -12,6 +12,13 @@ import type {
   CreateEmployeeResponse,
   UpdateEmployeeRequest,
   UpdateEmployeeResponse,
+  ListAssignmentsResponse,
+  CreateAssignmentRequest,
+  CreateAssignmentResponse,
+  UpdateAssignmentRequest,
+  UpdateAssignmentResponse,
+  DeleteAssignmentResponse,
+  ListActiveDepartmentsResponse,
 } from './BffClient';
 
 export class HttpBffClient implements BffClient {
@@ -117,5 +124,93 @@ export class HttpBffClient implements BffClient {
     });
 
     return this.handleResponse<UpdateEmployeeResponse>(response);
+  }
+
+  // ===========================================================================
+  // Assignment Methods
+  // ===========================================================================
+
+  /**
+   * List assignments for an employee
+   */
+  async listAssignments(employeeId: string): Promise<ListAssignmentsResponse> {
+    const url = `${this.baseUrl}/employees/${employeeId}/assignments`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: this.buildHeaders(),
+    });
+
+    return this.handleResponse<ListAssignmentsResponse>(response);
+  }
+
+  /**
+   * Create new assignment
+   */
+  async createAssignment(
+    employeeId: string,
+    request: CreateAssignmentRequest,
+  ): Promise<CreateAssignmentResponse> {
+    const url = `${this.baseUrl}/employees/${employeeId}/assignments`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: this.buildHeaders(),
+      body: JSON.stringify(request),
+    });
+
+    return this.handleResponse<CreateAssignmentResponse>(response);
+  }
+
+  /**
+   * Update assignment
+   */
+  async updateAssignment(
+    employeeId: string,
+    assignmentId: string,
+    request: UpdateAssignmentRequest,
+  ): Promise<UpdateAssignmentResponse> {
+    const url = `${this.baseUrl}/employees/${employeeId}/assignments/${assignmentId}`;
+
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: this.buildHeaders(),
+      body: JSON.stringify(request),
+    });
+
+    return this.handleResponse<UpdateAssignmentResponse>(response);
+  }
+
+  /**
+   * Delete assignment (soft delete)
+   */
+  async deleteAssignment(
+    employeeId: string,
+    assignmentId: string,
+    version: number,
+  ): Promise<DeleteAssignmentResponse> {
+    const url = `${this.baseUrl}/employees/${employeeId}/assignments/${assignmentId}`;
+
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: this.buildHeaders(),
+      body: JSON.stringify({ version }),
+    });
+
+    return this.handleResponse<DeleteAssignmentResponse>(response);
+  }
+
+  /**
+   * List active departments
+   */
+  async listActiveDepartments(): Promise<ListActiveDepartmentsResponse> {
+    const url = `${this.baseUrl}/departments/active`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: this.buildHeaders(),
+    });
+
+    return this.handleResponse<ListActiveDepartmentsResponse>(response);
   }
 }

@@ -51,9 +51,472 @@ model Employee {
   createdByLoginAccountId String?   @map("created_by_login_account_id")
   updatedByLoginAccountId String?   @map("updated_by_login_account_id")
 
+  // Relations
+  assignments EmployeeAssignment[]
+
   @@unique([tenantId, employeeCode])
   @@index([tenantId, employeeCode])
   @@index([tenantId, isActive])
   @@index([tenantId, joinDate])
   @@map("employees")
+}
+
+// =============================================================================
+// Master Data: Employee Assignment（社員所属履歴）
+// =============================================================================
+
+/// 社員所属履歴
+/// 社員の所属部門・主務/兼務を期間で管理
+model EmployeeAssignment {
+  id                      String    @id @default(uuid())
+  tenantId                String    @map("tenant_id")
+  employeeId              String    @map("employee_id")
+  departmentStableId      String    @map("department_stable_id")
+  assignmentType          String    @map("assignment_type") // 'primary' | 'secondary'
+  allocationRatio         Decimal?  @map("allocation_ratio") @db.Decimal(5, 2)
+  title                   String?   @db.VarChar(100)
+  effectiveDate           DateTime  @map("effective_date") @db.Date
+  expiryDate              DateTime? @map("expiry_date") @db.Date
+  isActive                Boolean   @default(true) @map("is_active")
+  version                 Int       @default(1)
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  createdByLoginAccountId String?   @map("created_by_login_account_id")
+  updatedByLoginAccountId String?   @map("updated_by_login_account_id")
+
+  // Relations
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  @@index([tenantId, employeeId])
+  @@index([tenantId, departmentStableId])
+  @@index([tenantId, employeeId, effectiveDate])
+  @@map("employee_assignments")
+}
+
+// =============================================================================
+// Master Data: Organization（組織マスタ）
+// =============================================================================
+
+/// 組織バージョン（組織構造のスナップショット）
+model OrganizationVersion {
+  id            String    @id @default(uuid())
+  tenantId      String    @map("tenant_id")
+  versionCode   String    @map("version_code")
+  versionName   String    @map("version_name")
+  effectiveDate DateTime  @map("effective_date") @db.Date
+  expiryDate    DateTime? @map("expiry_date") @db.Date
+  baseVersionId String?   @map("base_version_id")
+  description   String?
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  createdBy     String?   @map("created_by")
+  updatedBy     String?   @map("updated_by")
+
+  // Relations
+  baseVersion    OrganizationVersion?  @relation("VersionCopy", fields: [baseVersionId], references: [id])
+  copiedVersions OrganizationVersion[] @relation("VersionCopy")
+  departments    Department[]
+
+  @@unique([tenantId, versionCode])
+  @@index([tenantId])
+  @@index([tenantId, effectiveDate])
+  @@map("organization_versions")
+}
+
+/// 部門マスタ
+model Department {
+  id                  String   @id @default(uuid())
+  tenantId            String   @map("tenant_id")
+  versionId           String   @map("version_id")
+  stableId            String   @map("stable_id")
+  departmentCode      String   @map("department_code")
+  departmentName      String   @map("department_name")
+  departmentNameShort String?  @map("department_name_short")
+  parentId            String?  @map("parent_id")
+  sortOrder           Int      @default(0) @map("sort_order")
+  hierarchyLevel      Int      @default(1) @map("hierarchy_level")
+  hierarchyPath       String?  @map("hierarchy_path")
+  isActive            Boolean  @default(true) @map("is_active")
+  postalCode          String?  @map("postal_code")
+  addressLine1        String?  @map("address_line1")
+  addressLine2        String?  @map("address_line2")
+  phoneNumber         String?  @map("phone_number")
+  description         String?
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  createdBy           String?  @map("created_by")
+  updatedBy           String?  @map("updated_by")
+
+  // Relations
+  version  OrganizationVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  parent   Department?         @relation("DepartmentHierarchy", fields: [parentId], references: [id])
+  children Department[]        @relation("DepartmentHierarchy")
+
+  @@unique([tenantId, versionId, departmentCode])
+  @@unique([tenantId, stableId])
+  @@index([tenantId, versionId])
+  @@index([tenantId, versionId, parentId])
+  @@index([tenantId, stableId])
+  @@index([tenantId, hierarchyPath])
+  @@map("departments")
+}
+
+// =============================================================================
+// Master Data: Bank（銀行マスタ）
+// =============================================================================
+
+/// 銀行マスタ
+model Bank {
+  id                      String   @id @default(uuid())
+  tenantId                String   @map("tenant_id")
+  bankCode                String   @map("bank_code") @db.VarChar(4)
+  bankName                String   @map("bank_name") @db.VarChar(100)
+  bankNameKana            String?  @map("bank_name_kana") @db.VarChar(150)
+  swiftCode               String?  @map("swift_code") @db.VarChar(11)
+  displayOrder            Int      @default(1000) @map("display_order")
+  isActive                Boolean  @default(true) @map("is_active")
+  version                 Int      @default(1)
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+  createdByLoginAccountId String?  @map("created_by_login_account_id")
+  updatedByLoginAccountId String?  @map("updated_by_login_account_id")
+
+  // Relations
+  branches            BankBranch[]
+  payeeBankAccounts   PayeeBankAccount[]
+  companyBankAccounts CompanyBankAccount[]
+
+  @@unique([tenantId, bankCode])
+  @@index([tenantId, bankCode])
+  @@index([tenantId, displayOrder])
+  @@index([tenantId, isActive])
+  @@index([tenantId, bankNameKana])
+  @@map("banks")
+}
+
+/// 支店マスタ
+model BankBranch {
+  id                      String   @id @default(uuid())
+  tenantId                String   @map("tenant_id")
+  bankId                  String   @map("bank_id")
+  branchCode              String   @map("branch_code") @db.VarChar(3)
+  branchName              String   @map("branch_name") @db.VarChar(100)
+  branchNameKana          String?  @map("branch_name_kana") @db.VarChar(150)
+  displayOrder            Int      @default(1000) @map("display_order")
+  isActive                Boolean  @default(true) @map("is_active")
+  version                 Int      @default(1)
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+  createdByLoginAccountId String?  @map("created_by_login_account_id")
+  updatedByLoginAccountId String?  @map("updated_by_login_account_id")
+
+  // Relations
+  bank                Bank                 @relation(fields: [bankId], references: [id])
+  payeeBankAccounts   PayeeBankAccount[]
+  companyBankAccounts CompanyBankAccount[]
+
+  @@unique([tenantId, bankId, branchCode])
+  @@index([tenantId, bankId, branchCode])
+  @@index([tenantId, bankId, displayOrder])
+  @@index([tenantId, bankId, isActive])
+  @@index([tenantId, bankId, branchNameKana])
+  @@map("bank_branches")
+}
+
+// =============================================================================
+// Master Data: Payee Bank Account（支払先口座）
+// =============================================================================
+
+/// 口座区分
+enum AccountCategory {
+  bank // 銀行
+  post_office // ゆうちょ銀行
+  ja_bank // 農協
+}
+
+/// 口座種別
+enum AccountType {
+  ordinary // 普通
+  current // 当座
+  savings // 貯蓄
+  other // その他
+}
+
+/// 振込手数料負担
+enum TransferFeeBearer {
+  sender // 当社負担
+  recipient // 先方負担
+}
+
+/// 支払先口座
+model PayeeBankAccount {
+  id                      String            @id @default(uuid())
+  tenantId                String            @map("tenant_id")
+  payeeId                 String            @map("payee_id")
+  accountCategory         AccountCategory   @map("account_category")
+  // Bank fields (for bank/ja_bank)
+  bankId                  String?           @map("bank_id")
+  bankBranchId            String?           @map("bank_branch_id")
+  // Post office fields
+  postOfficeSymbol        String?           @map("post_office_symbol") @db.VarChar(5)
+  postOfficeNumber        String?           @map("post_office_number") @db.VarChar(8)
+  // Common fields
+  accountType             AccountType       @map("account_type")
+  accountNo               String?           @map("account_no") @db.VarChar(7)
+  accountHolderName       String            @map("account_holder_name") @db.VarChar(100)
+  accountHolderNameKana   String?           @map("account_holder_name_kana") @db.VarChar(150)
+  transferFeeBearer       TransferFeeBearer @map("transfer_fee_bearer")
+  isDefault               Boolean           @default(false) @map("is_default")
+  isActive                Boolean           @default(true) @map("is_active")
+  notes                   String?
+  version                 Int               @default(1)
+  createdAt               DateTime          @default(now()) @map("created_at")
+  updatedAt               DateTime          @updatedAt @map("updated_at")
+  createdByLoginAccountId String?           @map("created_by_login_account_id")
+  updatedByLoginAccountId String?           @map("updated_by_login_account_id")
+
+  // Relations
+  payee      Payee       @relation(fields: [payeeId], references: [id])
+  bank       Bank?       @relation(fields: [bankId], references: [id])
+  bankBranch BankBranch? @relation(fields: [bankBranchId], references: [id])
+
+  @@index([tenantId, payeeId])
+  @@index([tenantId, payeeId, isDefault])
+  @@index([tenantId, payeeId, isActive])
+  @@map("payee_bank_accounts")
+}
+
+// =============================================================================
+// Master Data: Company Bank Account（自社口座 / 出金口座）
+// =============================================================================
+
+/// 自社口座区分（農協は除外：レアケースのため）
+enum CompanyAccountCategory {
+  bank // 銀行
+  post_office // ゆうちょ銀行
+}
+
+/// 自社口座種別
+enum CompanyAccountType {
+  ordinary // 普通
+  current // 当座
+  savings // 貯蓄
+}
+
+/// 自社口座
+model CompanyBankAccount {
+  id                      String                 @id @default(uuid())
+  tenantId                String                 @map("tenant_id")
+  accountCode             String                 @map("account_code") @db.VarChar(10)
+  accountName             String                 @map("account_name") @db.VarChar(100)
+  accountCategory         CompanyAccountCategory @map("account_category")
+  // Bank fields
+  bankId                  String?                @map("bank_id")
+  bankBranchId            String?                @map("bank_branch_id")
+  // Post office fields
+  postOfficeSymbol        String?                @map("post_office_symbol") @db.VarChar(5)
+  postOfficeNumber        String?                @map("post_office_number") @db.VarChar(8)
+  // Common fields
+  accountType             CompanyAccountType     @map("account_type")
+  accountNo               String?                @map("account_no") @db.VarChar(7)
+  accountHolderName       String                 @map("account_holder_name") @db.VarChar(100)
+  accountHolderNameKana   String?                @map("account_holder_name_kana") @db.VarChar(150)
+  consignorCode           String?                @map("consignor_code") @db.VarChar(10) // 委託者コード（全銀FB用）
+  isDefault               Boolean                @default(false) @map("is_default")
+  isActive                Boolean                @default(true) @map("is_active")
+  notes                   String?
+  version                 Int                    @default(1)
+  createdAt               DateTime               @default(now()) @map("created_at")
+  updatedAt               DateTime               @updatedAt @map("updated_at")
+  createdByLoginAccountId String?                @map("created_by_login_account_id")
+  updatedByLoginAccountId String?                @map("updated_by_login_account_id")
+
+  // Relations
+  bank            Bank?       @relation(fields: [bankId], references: [id])
+  bankBranch      BankBranch? @relation(fields: [bankBranchId], references: [id])
+  payeesAsDefault Payee[]     @relation("PayeeDefaultCompanyBankAccount")
+
+  @@unique([tenantId, accountCode])
+  @@index([tenantId, accountCode])
+  @@index([tenantId, isDefault])
+  @@index([tenantId, isActive])
+  @@map("company_bank_accounts")
+}
+
+// =============================================================================
+// Master Data: Business Partner（取引先）
+// =============================================================================
+
+/// 取引先法人（Party）
+/// 相手方の法人そのもの（会社単位で1レコード）
+model Party {
+  id                      String   @id @default(uuid())
+  tenantId                String   @map("tenant_id")
+  partyCode               String   @map("party_code") @db.VarChar(50) // 10桁運用（UI制限）
+  partyName               String   @map("party_name") @db.VarChar(200) // 正式名称
+  partyNameKana           String?  @map("party_name_kana") @db.VarChar(200) // カナ
+  partyShortName          String?  @map("party_short_name") @db.VarChar(200) // 略称
+  countryCode             String?  @map("country_code") @db.VarChar(2) // ISO国コード
+  postalCode              String?  @map("postal_code") @db.VarChar(20) // ハイフン可
+  prefecture              String?  @db.VarChar(50)
+  city                    String?  @db.VarChar(100)
+  addressLine1            String?  @map("address_line1") @db.VarChar(200)
+  addressLine2            String?  @map("address_line2") @db.VarChar(200)
+  phone                   String?  @db.VarChar(40) // 代表電話
+  fax                     String?  @db.VarChar(40)
+  websiteUrl              String?  @map("website_url") // text型
+  corporateNumber         String?  @map("corporate_number") @db.VarChar(20) // 法人番号（日本）
+  invoiceRegistrationNo   String?  @map("invoice_registration_no") @db.VarChar(30) // インボイス登録番号
+  isSupplier              Boolean  @default(false) @map("is_supplier") // 仕入先系を持つか（派生フラグ）
+  isCustomer              Boolean  @default(false) @map("is_customer") // 得意先系を持つか（派生フラグ）
+  isActive                Boolean  @default(true) @map("is_active")
+  notes                   String? // メモ
+  version                 Int      @default(1)
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+  createdByLoginAccountId String?  @map("created_by_login_account_id")
+  updatedByLoginAccountId String?  @map("updated_by_login_account_id")
+
+  // Relations
+  supplierSites SupplierSite[]
+  payees        Payee[]
+
+  @@unique([tenantId, partyCode])
+  @@index([tenantId, partyCode])
+  @@index([tenantId, partyName])
+  @@index([tenantId, partyNameKana])
+  @@index([tenantId, isSupplier])
+  @@index([tenantId, isCustomer])
+  @@index([tenantId, isActive])
+  @@map("parties")
+}
+
+/// 仕入先拠点（SupplierSite）
+/// 取引先（Party）に紐づく「購買の実務窓口」拠点
+model SupplierSite {
+  id                      String   @id @default(uuid())
+  tenantId                String   @map("tenant_id")
+  partyId                 String   @map("party_id")
+  supplierSubCode         String   @map("supplier_sub_code") @db.VarChar(50) // 10桁固定
+  supplierCode            String   @map("supplier_code") @db.VarChar(50) // 表示用（最大21文字）
+  supplierName            String   @map("supplier_name") @db.VarChar(200) // 拠点名
+  supplierNameKana        String?  @map("supplier_name_kana") @db.VarChar(200)
+  postalCode              String?  @map("postal_code") @db.VarChar(20)
+  prefecture              String?  @db.VarChar(50)
+  city                    String?  @db.VarChar(100)
+  addressLine1            String?  @map("address_line1") @db.VarChar(200)
+  addressLine2            String?  @map("address_line2") @db.VarChar(200)
+  phone                   String?  @db.VarChar(40)
+  fax                     String?  @db.VarChar(40)
+  email                   String?  @db.VarChar(254)
+  contactName             String?  @map("contact_name") @db.VarChar(100)
+  payeeId                 String?  @map("payee_id") // FK payees（未指定なら自動生成）
+  isActive                Boolean  @default(true) @map("is_active")
+  notes                   String?
+  version                 Int      @default(1)
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+  createdByLoginAccountId String?  @map("created_by_login_account_id")
+  updatedByLoginAccountId String?  @map("updated_by_login_account_id")
+
+  // Relations
+  party Party  @relation(fields: [partyId], references: [id])
+  payee Payee? @relation(fields: [payeeId], references: [id])
+
+  @@unique([tenantId, partyId, supplierSubCode])
+  @@unique([tenantId, supplierCode])
+  @@index([tenantId, partyId])
+  @@index([tenantId, supplierCode])
+  @@index([tenantId, supplierName])
+  @@index([tenantId, isActive])
+  @@map("supplier_sites")
+}
+
+/// 支払先（Payee）
+/// 支払・請求書受領・振込の単位（AP/支払の正本）
+model Payee {
+  id                          String   @id @default(uuid())
+  tenantId                    String   @map("tenant_id")
+  partyId                     String   @map("party_id")
+  payeeSubCode                String   @map("payee_sub_code") @db.VarChar(50) // 10桁固定
+  payeeCode                   String   @map("payee_code") @db.VarChar(50) // 表示用（最大21文字）
+  payeeName                   String   @map("payee_name") @db.VarChar(200) // 支払先名称
+  payeeNameKana               String?  @map("payee_name_kana") @db.VarChar(200)
+  payeePostalCode             String?  @map("payee_postal_code") @db.VarChar(20)
+  payeePrefecture             String?  @map("payee_prefecture") @db.VarChar(50)
+  payeeCity                   String?  @map("payee_city") @db.VarChar(100)
+  payeeAddressLine1           String?  @map("payee_address_line1") @db.VarChar(200)
+  payeeAddressLine2           String?  @map("payee_address_line2") @db.VarChar(200)
+  payeePhone                  String?  @map("payee_phone") @db.VarChar(40)
+  payeeFax                    String?  @map("payee_fax") @db.VarChar(40)
+  payeeEmail                  String?  @map("payee_email") @db.VarChar(254)
+  payeeContactName            String?  @map("payee_contact_name") @db.VarChar(100)
+  paymentMethod               String?  @map("payment_method") @db.VarChar(20) // 決済方法（V1）
+  currencyCode                String?  @map("currency_code") @db.VarChar(3) // 金種（V1）
+  paymentTermsText            String?  @map("payment_terms_text") // 決済条件（V1）
+  defaultCompanyBankAccountId String?  @map("default_company_bank_account_id") // デフォルト出金口座
+  isActive                    Boolean  @default(true) @map("is_active")
+  notes                       String?
+  version                     Int      @default(1)
+  createdAt                   DateTime @default(now()) @map("created_at")
+  updatedAt                   DateTime @updatedAt @map("updated_at")
+  createdByLoginAccountId     String?  @map("created_by_login_account_id")
+  updatedByLoginAccountId     String?  @map("updated_by_login_account_id")
+
+  // Relations
+  party                     Party               @relation(fields: [partyId], references: [id])
+  defaultCompanyBankAccount CompanyBankAccount? @relation("PayeeDefaultCompanyBankAccount", fields: [defaultCompanyBankAccountId], references: [id])
+  supplierSites             SupplierSite[]
+  bankAccounts              PayeeBankAccount[]
+
+  @@unique([tenantId, partyId, payeeSubCode])
+  @@unique([tenantId, payeeCode])
+  @@index([tenantId, partyId])
+  @@index([tenantId, payeeCode])
+  @@index([tenantId, payeeName])
+  @@index([tenantId, isActive])
+  @@map("payees")
+}
+
+// =============================================================================
+// Master Data: ShipTo（納入先マスタ）
+// =============================================================================
+
+/// 納入先マスタ
+/// 発注時に「実際にモノを届ける場所」を選択するための基盤マスタ
+/// エンドユーザー／現場／工事場所等の直送先を含む
+model ShipTo {
+  id                      String    @id @default(uuid())
+  tenantId                String    @map("tenant_id")
+  shipToCode              String    @map("ship_to_code") @db.VarChar(10)
+  shipToName              String    @map("ship_to_name") @db.VarChar(100)
+  shipToNameKana          String?   @map("ship_to_name_kana") @db.VarChar(200)
+  customerSiteId          String?   @map("customer_site_id") // nullable, can link later
+  postalCode              String?   @map("postal_code") @db.VarChar(10)
+  prefecture              String?   @map("prefecture") @db.VarChar(20)
+  city                    String?   @map("city") @db.VarChar(50)
+  address1                String?   @map("address_1") @db.VarChar(100)
+  address2                String?   @map("address_2") @db.VarChar(100)
+  phoneNumber             String?   @map("phone_number") @db.VarChar(20)
+  faxNumber               String?   @map("fax_number") @db.VarChar(20)
+  email                   String?   @map("email") @db.VarChar(254)
+  contactPerson           String?   @map("contact_person") @db.VarChar(50)
+  remarks                 String?   @map("remarks") @db.Text
+  isActive                Boolean   @default(true) @map("is_active")
+  version                 Int       @default(1)
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  createdByLoginAccountId String?   @map("created_by_login_account_id")
+  updatedByLoginAccountId String?   @map("updated_by_login_account_id")
+
+  // Relations (future: CustomerSite)
+  // customerSite    CustomerSite? @relation(fields: [customerSiteId], references: [id])
+
+  @@unique([tenantId, shipToCode])
+  @@index([tenantId, shipToCode])
+  @@index([tenantId, shipToName])
+  @@index([tenantId, isActive])
+  @@index([tenantId, customerSiteId])
+  @@map("ship_tos")
 }
