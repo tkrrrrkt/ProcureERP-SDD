@@ -54,3 +54,5 @@ Thumbs.db
 *.tmp
 *.temp
 *.swp
+**/dist/
+nul
