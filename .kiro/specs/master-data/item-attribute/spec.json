@@ -1,0 +1,30 @@
+{
+  "feature_name": "item-attribute",
+  "created_at": "2026-01-26T09:00:00Z",
+  "updated_at": "2026-01-27T12:00:00Z",
+  "language": "ja",
+  "phase": "implemented",
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "ready_for_implementation": true,
+  "implementation_status": {
+    "contracts": "completed",
+    "database": "completed",
+    "domain_api": "completed",
+    "bff": "completed",
+    "ui": "completed",
+    "e2e_tests": "deferred"
+  }
+}
