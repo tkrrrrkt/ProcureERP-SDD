@@ -520,3 +520,383 @@ model ShipTo {
   @@index([tenantId, customerSiteId])
   @@map("ship_tos")
 }
+
+// =============================================================================
+// Master Data: Warehouse（倉庫マスタ）
+// =============================================================================
+
+/// 倉庫グループマスタ
+/// 倉庫をグルーピングする（分析・権限・既定倉庫などの拡張余地）
+/// MVPでは任意（未使用でもよい）- エンティティのみ
+model WarehouseGroup {
+  id                      String   @id @default(uuid())
+  tenantId                String   @map("tenant_id")
+  warehouseGroupCode      String   @map("warehouse_group_code") @db.VarChar(10)
+  warehouseGroupName      String   @map("warehouse_group_name") @db.VarChar(100)
+  notes                   String?
+  isActive                Boolean  @default(true) @map("is_active")
+  version                 Int      @default(1)
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+  createdByLoginAccountId String?  @map("created_by_login_account_id")
+  updatedByLoginAccountId String?  @map("updated_by_login_account_id")
+
+  // Relations
+  warehouses Warehouse[]
+
+  @@unique([tenantId, warehouseGroupCode])
+  @@index([tenantId, warehouseGroupCode])
+  @@index([tenantId, isActive])
+  @@map("warehouse_groups")
+}
+
+/// 倉庫マスタ
+/// 受入／保管場所としての倉庫を管理
+/// 在庫ロケーション（棚番）などの詳細はV2以降で拡張
+model Warehouse {
+  id                      String          @id @default(uuid())
+  tenantId                String          @map("tenant_id")
+  warehouseCode           String          @map("warehouse_code") @db.VarChar(10)
+  warehouseName           String          @map("warehouse_name") @db.VarChar(100)
+  warehouseNameKana       String?         @map("warehouse_name_kana") @db.VarChar(200)
+  warehouseGroupId        String?         @map("warehouse_group_id")
+  // 住所（分割形式）
+  postalCode              String?         @map("postal_code") @db.VarChar(10)
+  prefecture              String?         @map("prefecture") @db.VarChar(20)
+  city                    String?         @map("city") @db.VarChar(50)
+  address1                String?         @map("address_1") @db.VarChar(100)
+  address2                String?         @map("address_2") @db.VarChar(100)
+  phoneNumber             String?         @map("phone_number") @db.VarChar(20)
+  // 運用
+  isDefaultReceiving      Boolean         @default(false) @map("is_default_receiving")
+  displayOrder            Int             @default(1000) @map("display_order")
+  notes                   String?
+  isActive                Boolean         @default(true) @map("is_active")
+  version                 Int             @default(1)
+  createdAt               DateTime        @default(now()) @map("created_at")
+  updatedAt               DateTime        @updatedAt @map("updated_at")
+  createdByLoginAccountId String?         @map("created_by_login_account_id")
+  updatedByLoginAccountId String?         @map("updated_by_login_account_id")
+
+  // Relations
+  warehouseGroup WarehouseGroup? @relation(fields: [warehouseGroupId], references: [id])
+
+  @@unique([tenantId, warehouseCode])
+  @@index([tenantId, warehouseCode])
+  @@index([tenantId, warehouseName])
+  @@index([tenantId, warehouseNameKana])
+  @@index([tenantId, warehouseGroupId])
+  @@index([tenantId, isDefaultReceiving])
+  @@index([tenantId, displayOrder])
+  @@index([tenantId, isActive])
+  @@map("warehouses")
+}
+
+// =============================================================================
+// Master Data: Unit（単位マスタ）
+// =============================================================================
+
+/// 単位グループ（UoMGroup）
+/// 単位の「互換枠」を定義（同一グループ内のみ将来換算可能）
+/// 各グループは必ず1つの基準単位（base_uom）を持つ
+model UomGroup {
+  id                      String   @id @default(uuid())
+  tenantId                String   @map("tenant_id")
+  uomGroupCode            String   @map("uom_group_code") @db.VarChar(10)
+  uomGroupName            String   @map("uom_group_name") @db.VarChar(100)
+  description             String?  @db.Text
+  baseUomId               String   @map("base_uom_id")
+  isActive                Boolean  @default(true) @map("is_active")
+  version                 Int      @default(1)
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+  createdByLoginAccountId String?  @map("created_by_login_account_id")
+  updatedByLoginAccountId String?  @map("updated_by_login_account_id")
+
+  // Relations
+  baseUom Uom   @relation("GroupBaseUom", fields: [baseUomId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  uoms    Uom[] @relation("GroupUoms")
+
+  @@unique([tenantId, uomGroupCode])
+  @@index([tenantId])
+  @@index([tenantId, uomGroupCode])
+  @@index([tenantId, isActive])
+  @@map("uom_groups")
+}
+
+/// 単位（UoM）
+/// 品目・伝票明細で使用する数量単位
+/// uom_codeは英数字大文字＋-/_のみ、1〜10文字
+model Uom {
+  id                      String     @id @default(uuid())
+  tenantId                String     @map("tenant_id")
+  uomGroupId              String     @map("uom_group_id")
+  uomCode                 String     @map("uom_code") @db.VarChar(10)
+  uomName                 String     @map("uom_name") @db.VarChar(100)
+  uomSymbol               String?    @map("uom_symbol") @db.VarChar(20)
+  isActive                Boolean    @default(true) @map("is_active")
+  version                 Int        @default(1)
+  createdAt               DateTime   @default(now()) @map("created_at")
+  updatedAt               DateTime   @updatedAt @map("updated_at")
+  createdByLoginAccountId String?    @map("created_by_login_account_id")
+  updatedByLoginAccountId String?    @map("updated_by_login_account_id")
+
+  // Relations
+  uomGroup       UomGroup   @relation("GroupUoms", fields: [uomGroupId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  asGroupBaseUom UomGroup[] @relation("GroupBaseUom")
+
+  @@unique([tenantId, uomCode])
+  @@index([tenantId])
+  @@index([tenantId, uomGroupId])
+  @@index([tenantId, uomCode])
+  @@index([tenantId, isActive])
+  @@map("uoms")
+}
+
+// =============================================================================
+// Master Data: Category-Segment（カテゴリ・セグメントマスタ）
+// =============================================================================
+
+/// 対象エンティティ種別
+enum TargetEntityKind {
+  ITEM          // 品目
+  PARTY         // 取引先法人
+  SUPPLIER_SITE // 仕入先拠点
+}
+
+/// カテゴリ軸（CategoryAxis）
+/// テナントが自由に定義できる分類軸（品目カテゴリ、取引先区分など）
+model CategoryAxis {
+  id                      String           @id @default(uuid())
+  tenantId                String           @map("tenant_id")
+  axisCode                String           @map("axis_code") @db.VarChar(10)
+  axisName                String           @map("axis_name") @db.VarChar(100)
+  targetEntityKind        TargetEntityKind @map("target_entity_kind")
+  supportsHierarchy       Boolean          @default(false) @map("supports_hierarchy")
+  displayOrder            Int              @default(1000) @map("display_order")
+  description             String?
+  isActive                Boolean          @default(true) @map("is_active")
+  version                 Int              @default(1)
+  createdAt               DateTime         @default(now()) @map("created_at")
+  updatedAt               DateTime         @updatedAt @map("updated_at")
+  createdByLoginAccountId String?          @map("created_by_login_account_id")
+  updatedByLoginAccountId String?          @map("updated_by_login_account_id")
+
+  // Relations
+  segments    Segment[]
+  assignments SegmentAssignment[]
+
+  @@unique([tenantId, axisCode])
+  @@index([tenantId, axisCode])
+  @@index([tenantId, targetEntityKind])
+  @@index([tenantId, displayOrder])
+  @@index([tenantId, isActive])
+  @@map("category_axes")
+}
+
+/// セグメント（Segment）
+/// カテゴリ軸に属する分類値（階層構造をサポート）
+model Segment {
+  id                      String       @id @default(uuid())
+  tenantId                String       @map("tenant_id")
+  categoryAxisId          String       @map("category_axis_id")
+  segmentCode             String       @map("segment_code") @db.VarChar(10)
+  segmentName             String       @map("segment_name") @db.VarChar(100)
+  parentSegmentId         String?      @map("parent_segment_id")
+  hierarchyLevel          Int          @default(1) @map("hierarchy_level")
+  hierarchyPath           String?      @map("hierarchy_path")
+  displayOrder            Int          @default(1000) @map("display_order")
+  description             String?
+  isActive                Boolean      @default(true) @map("is_active")
+  version                 Int          @default(1)
+  createdAt               DateTime     @default(now()) @map("created_at")
+  updatedAt               DateTime     @updatedAt @map("updated_at")
+  createdByLoginAccountId String?      @map("created_by_login_account_id")
+  updatedByLoginAccountId String?      @map("updated_by_login_account_id")
+
+  // Relations
+  categoryAxis   CategoryAxis        @relation(fields: [categoryAxisId], references: [id])
+  parentSegment  Segment?            @relation("SegmentHierarchy", fields: [parentSegmentId], references: [id])
+  childSegments  Segment[]           @relation("SegmentHierarchy")
+  assignments    SegmentAssignment[]
+
+  @@unique([tenantId, categoryAxisId, segmentCode])
+  @@index([tenantId, categoryAxisId])
+  @@index([tenantId, categoryAxisId, displayOrder])
+  @@index([tenantId, categoryAxisId, isActive])
+  @@index([tenantId, hierarchyPath])
+  @@map("segments")
+}
+
+/// セグメント割当（SegmentAssignment）
+/// エンティティに対するセグメント値の割当（1軸1値制約）
+model SegmentAssignment {
+  id                      String           @id @default(uuid())
+  tenantId                String           @map("tenant_id")
+  entityKind              TargetEntityKind @map("entity_kind")
+  entityId                String           @map("entity_id")
+  categoryAxisId          String           @map("category_axis_id")
+  segmentId               String           @map("segment_id")
+  isActive                Boolean          @default(true) @map("is_active")
+  version                 Int              @default(1)
+  createdAt               DateTime         @default(now()) @map("created_at")
+  updatedAt               DateTime         @updatedAt @map("updated_at")
+  createdByLoginAccountId String?          @map("created_by_login_account_id")
+  updatedByLoginAccountId String?          @map("updated_by_login_account_id")
+
+  // Relations
+  categoryAxis CategoryAxis @relation(fields: [categoryAxisId], references: [id])
+  segment      Segment      @relation(fields: [segmentId], references: [id])
+
+  // 1軸1値制約: 同一エンティティ×同一カテゴリ軸に対して1セグメントのみ
+  @@unique([tenantId, entityKind, entityId, categoryAxisId])
+  @@index([tenantId, entityKind, entityId])
+  @@index([tenantId, categoryAxisId])
+  @@index([tenantId, segmentId])
+  @@map("segment_assignments")
+}
+
+// =============================================================================
+// Tax Rate Master (税率マスタ)
+// =============================================================================
+
+/// 税率（TaxRate）
+/// 消費税率の定義。税率コードと税率値（ratePercent）は作成後変更不可。
+model TaxRate {
+  id                      String    @id @default(uuid())
+  tenantId                String    @map("tenant_id")
+  taxRateCode             String    @map("tax_rate_code")
+  ratePercent             Decimal   @map("rate_percent") @db.Decimal(5, 2)
+  validFrom               DateTime  @map("valid_from") @db.Date
+  validTo                 DateTime? @map("valid_to") @db.Date
+  isActive                Boolean   @default(true) @map("is_active")
+  version                 Int       @default(1)
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  createdByLoginAccountId String?   @map("created_by_login_account_id")
+  updatedByLoginAccountId String?   @map("updated_by_login_account_id")
+
+  // Relations
+  taxCodes TaxCode[]
+
+  @@unique([tenantId, taxRateCode])
+  @@index([tenantId, taxRateCode])
+  @@index([tenantId, isActive])
+  @@index([tenantId, validFrom])
+  @@map("tax_rates")
+}
+
+/// 税区分（TaxBusinessCategory）
+/// 取引の税務区分（課税売上、課税仕入、非課税等）。シードデータで初期投入。
+model TaxBusinessCategory {
+  id                           String    @id @default(uuid())
+  tenantId                     String    @map("tenant_id")
+  taxBusinessCategoryCode      String    @map("tax_business_category_code")
+  taxBusinessCategoryName      String    @map("tax_business_category_name")
+  description                  String?
+  isActive                     Boolean   @default(true) @map("is_active")
+  version                      Int       @default(1)
+  createdAt                    DateTime  @default(now()) @map("created_at")
+  updatedAt                    DateTime  @updatedAt @map("updated_at")
+  createdByLoginAccountId      String?   @map("created_by_login_account_id")
+  updatedByLoginAccountId      String?   @map("updated_by_login_account_id")
+
+  // Relations
+  taxCodes TaxCode[]
+
+  @@unique([tenantId, taxBusinessCategoryCode])
+  @@index([tenantId, taxBusinessCategoryCode])
+  @@index([tenantId, isActive])
+  @@map("tax_business_categories")
+}
+
+// =============================================================================
+// Tax Code Master (税コードマスタ)
+// =============================================================================
+
+/// 税コード（TaxCode）
+/// 税区分×税率の関連マスタ。伝票明細が参照する税計算の正本キー。
+/// 作成後は taxCode, taxBusinessCategoryId, taxRateId, taxInOut は変更不可。
+model TaxCode {
+  id                      String              @id @default(uuid())
+  tenantId                String              @map("tenant_id")
+  taxCode                 String              @map("tax_code")
+  taxBusinessCategoryId   String              @map("tax_business_category_id")
+  taxRateId               String              @map("tax_rate_id")
+  taxInOut                String              @map("tax_in_out") // INCLUSIVE | EXCLUSIVE
+  isActive                Boolean             @default(true) @map("is_active")
+  version                 Int                 @default(1)
+  createdAt               DateTime            @default(now()) @map("created_at")
+  updatedAt               DateTime            @updatedAt @map("updated_at")
+  createdByLoginAccountId String?             @map("created_by_login_account_id")
+  updatedByLoginAccountId String?             @map("updated_by_login_account_id")
+
+  // Relations
+  taxBusinessCategory TaxBusinessCategory @relation(fields: [taxBusinessCategoryId], references: [id])
+  taxRate             TaxRate             @relation(fields: [taxRateId], references: [id])
+
+  @@unique([tenantId, taxCode])
+  @@index([tenantId, taxCode])
+  @@index([tenantId, isActive])
+  @@index([tenantId, taxBusinessCategoryId])
+  @@index([tenantId, taxRateId])
+  @@map("tax_codes")
+}
+
+// =============================================================================
+// Master Data: Item Attribute（品目仕様属性マスタ）
+// =============================================================================
+
+/// 品目仕様属性（ItemAttribute）
+/// SKUの規格・仕様を定義する属性マスタ（色、サイズ、材質等）
+/// MVP: valueTypeは'SELECT'固定（リスト選択のみ）
+model ItemAttribute {
+  id                      String   @id @default(uuid())
+  tenantId                String   @map("tenant_id")
+  itemAttributeCode       String   @map("item_attribute_code") @db.VarChar(20)
+  itemAttributeName       String   @map("item_attribute_name") @db.VarChar(100)
+  valueType               String   @default("SELECT") @map("value_type") @db.VarChar(20) // MVP: 'SELECT' fixed
+  sortOrder               Int      @default(0) @map("sort_order")
+  isActive                Boolean  @default(true) @map("is_active")
+  version                 Int      @default(1)
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+  createdByLoginAccountId String?  @map("created_by_login_account_id")
+  updatedByLoginAccountId String?  @map("updated_by_login_account_id")
+
+  // Relations
+  values ItemAttributeValue[]
+
+  @@unique([tenantId, itemAttributeCode])
+  @@index([tenantId, itemAttributeCode])
+  @@index([tenantId, sortOrder])
+  @@index([tenantId, isActive])
+  @@map("item_attributes")
+}
+
+/// 品目仕様属性値（ItemAttributeValue）
+/// 仕様属性に紐づく選択肢の値マスタ
+/// valueCodeは同一属性内でユニーク
+model ItemAttributeValue {
+  id                      String        @id @default(uuid())
+  tenantId                String        @map("tenant_id")
+  itemAttributeId         String        @map("item_attribute_id")
+  valueCode               String        @map("value_code") @db.VarChar(30)
+  valueName               String        @map("value_name") @db.VarChar(100)
+  sortOrder               Int           @default(0) @map("sort_order")
+  isActive                Boolean       @default(true) @map("is_active")
+  version                 Int           @default(1)
+  createdAt               DateTime      @default(now()) @map("created_at")
+  updatedAt               DateTime      @updatedAt @map("updated_at")
+  createdByLoginAccountId String?       @map("created_by_login_account_id")
+  updatedByLoginAccountId String?       @map("updated_by_login_account_id")
+
+  // Relations
+  itemAttribute ItemAttribute @relation(fields: [itemAttributeId], references: [id])
+
+  @@unique([tenantId, itemAttributeId, valueCode])
+  @@index([tenantId, itemAttributeId])
+  @@index([tenantId, itemAttributeId, sortOrder])
+  @@index([tenantId, itemAttributeId, isActive])
+  @@map("item_attribute_values")
+}
