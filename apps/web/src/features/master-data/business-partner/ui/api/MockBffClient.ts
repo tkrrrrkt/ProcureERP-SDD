@@ -21,9 +21,25 @@ import type {
   CreatePayeeResponse,
   UpdatePayeeRequest,
   UpdatePayeeResponse,
+  ListPayeeBankAccountsRequest,
+  ListPayeeBankAccountsResponse,
+  CreatePayeeBankAccountRequest,
+  CreatePayeeBankAccountResponse,
+  UpdatePayeeBankAccountRequest,
+  UpdatePayeeBankAccountResponse,
+  SearchBanksRequest,
+  SearchBanksResponse,
+  SearchBranchesRequest,
+  SearchBranchesResponse,
+  ListCompanyBankAccountsRequest,
+  ListCompanyBankAccountsResponse,
   PartyDto,
   SupplierSiteDto,
   PayeeDto,
+  PayeeBankAccountDto,
+  BankSummary,
+  BranchSummary,
+  CompanyBankAccountSummary,
 } from "../types/bff-contracts"
 
 // Mock data storage
@@ -33,10 +49,22 @@ const mockParties: PartyDto[] = [
     partyCode: "P000000001",
     partyName: "株式会社サンプル商事",
     partyNameKana: "カブシキガイシャサンプルショウジ",
+    partyShortName: "サンプル商事",
+    countryCode: "JP",
+    postalCode: "100-0001",
+    prefecture: "東京都",
+    city: "千代田区",
+    addressLine1: "丸の内1-1-1",
+    addressLine2: "サンプルビル10F",
+    phone: "03-1234-5678",
+    fax: "03-1234-5679",
+    websiteUrl: "https://sample.co.jp",
+    corporateNumber: "1234567890123",
+    invoiceRegistrationNo: "T1234567890123",
     isSupplier: true,
     isCustomer: false,
     isActive: true,
-    remarks: null,
+    notes: null,
     version: 1,
     createdAt: "2024-01-15T09:00:00Z",
     updatedAt: "2024-01-15T09:00:00Z",
@@ -48,10 +76,22 @@ const mockParties: PartyDto[] = [
     partyCode: "P000000002",
     partyName: "東京電機工業株式会社",
     partyNameKana: "トウキョウデンキコウギョウカブシキガイシャ",
+    partyShortName: "東京電機",
+    countryCode: "JP",
+    postalCode: "144-0001",
+    prefecture: "東京都",
+    city: "大田区",
+    addressLine1: "蒲田5-10-1",
+    addressLine2: null,
+    phone: "03-5555-1234",
+    fax: "03-5555-1235",
+    websiteUrl: "https://tokyodenki.co.jp",
+    corporateNumber: "9876543210123",
+    invoiceRegistrationNo: "T9876543210123",
     isSupplier: true,
     isCustomer: true,
     isActive: true,
-    remarks: "大手取引先",
+    notes: "大手取引先",
     version: 1,
     createdAt: "2024-01-16T10:00:00Z",
     updatedAt: "2024-01-16T10:00:00Z",
@@ -63,10 +103,22 @@ const mockParties: PartyDto[] = [
     partyCode: "P000000003",
     partyName: "大阪物流センター株式会社",
     partyNameKana: "オオサカブツリュウセンターカブシキガイシャ",
+    partyShortName: "大阪物流",
+    countryCode: "JP",
+    postalCode: "530-0001",
+    prefecture: "大阪府",
+    city: "大阪市北区",
+    addressLine1: "梅田2-2-2",
+    addressLine2: null,
+    phone: "06-1234-5678",
+    fax: null,
+    websiteUrl: null,
+    corporateNumber: null,
+    invoiceRegistrationNo: null,
     isSupplier: false,
     isCustomer: true,
     isActive: true,
-    remarks: null,
+    notes: null,
     version: 1,
     createdAt: "2024-01-17T11:00:00Z",
     updatedAt: "2024-01-17T11:00:00Z",
@@ -96,6 +148,7 @@ const mockSupplierSites: SupplierSiteDto[] = [
     email: "tokyo@sample.co.jp",
     contactName: "山田太郎",
     isActive: true,
+    notes: "主要拠点",
     version: 1,
     createdAt: "2024-01-15T10:00:00Z",
     updatedAt: "2024-01-15T10:00:00Z",
@@ -122,6 +175,7 @@ const mockSupplierSites: SupplierSiteDto[] = [
     email: "osaka@sample.co.jp",
     contactName: "佐藤花子",
     isActive: true,
+    notes: null,
     version: 1,
     createdAt: "2024-01-15T11:00:00Z",
     updatedAt: "2024-01-15T11:00:00Z",
@@ -148,11 +202,124 @@ const mockSupplierSites: SupplierSiteDto[] = [
     email: "factory@tokyodenki.co.jp",
     contactName: "鈴木一郎",
     isActive: true,
+    notes: "大口取引先",
     version: 1,
     createdAt: "2024-01-16T12:00:00Z",
     updatedAt: "2024-01-16T12:00:00Z",
     createdBy: "user-001",
     updatedBy: "user-001",
+  },
+]
+
+const mockPayeeBankAccounts: PayeeBankAccountDto[] = [
+  {
+    id: "bank-account-001",
+    payeeId: "payee-001",
+    accountCategory: "bank",
+    bankId: "bank-001",
+    bankBranchId: "branch-001",
+    bankCode: "0001",
+    bankName: "みずほ銀行",
+    branchCode: "001",
+    branchName: "東京営業部",
+    postOfficeSymbol: null,
+    postOfficeNumber: null,
+    accountType: "ordinary",
+    accountNo: "1234567",
+    accountHolderName: "カ）サンプルショウジ",
+    accountHolderNameKana: "カ）サンプルショウジ",
+    transferFeeBearer: "sender",
+    isDefault: true,
+    isActive: true,
+    notes: null,
+    version: 1,
+    createdAt: "2024-01-15T10:00:00Z",
+    updatedAt: "2024-01-15T10:00:00Z",
+    createdBy: "user-001",
+    updatedBy: "user-001",
+  },
+]
+
+// Mock bank master data
+const mockBanks: BankSummary[] = [
+  { id: "bank-001", bankCode: "0001", bankName: "みずほ銀行", bankNameKana: "ミズホギンコウ" },
+  { id: "bank-002", bankCode: "0005", bankName: "三菱UFJ銀行", bankNameKana: "ミツビシユーエフジェイギンコウ" },
+  { id: "bank-003", bankCode: "0009", bankName: "三井住友銀行", bankNameKana: "ミツイスミトモギンコウ" },
+  { id: "bank-004", bankCode: "0010", bankName: "りそな銀行", bankNameKana: "リソナギンコウ" },
+  { id: "bank-005", bankCode: "0017", bankName: "埼玉りそな銀行", bankNameKana: "サイタマリソナギンコウ" },
+  { id: "bank-006", bankCode: "0116", bankName: "北海道銀行", bankNameKana: "ホッカイドウギンコウ" },
+  { id: "bank-007", bankCode: "0117", bankName: "青森銀行", bankNameKana: "アオモリギンコウ" },
+  { id: "bank-008", bankCode: "0118", bankName: "みちのく銀行", bankNameKana: "ミチノクギンコウ" },
+  { id: "bank-009", bankCode: "0119", bankName: "秋田銀行", bankNameKana: "アキタギンコウ" },
+  { id: "bank-010", bankCode: "0120", bankName: "北都銀行", bankNameKana: "ホクトギンコウ" },
+  { id: "bank-011", bankCode: "0122", bankName: "山形銀行", bankNameKana: "ヤマガタギンコウ" },
+  { id: "bank-012", bankCode: "0123", bankName: "岩手銀行", bankNameKana: "イワテギンコウ" },
+  { id: "bank-013", bankCode: "0124", bankName: "東北銀行", bankNameKana: "トウホクギンコウ" },
+  { id: "bank-014", bankCode: "0125", bankName: "七十七銀行", bankNameKana: "シチジュウシチギンコウ" },
+  { id: "bank-015", bankCode: "0126", bankName: "東邦銀行", bankNameKana: "トウホウギンコウ" },
+]
+
+// Mock branch data (by bank)
+const mockBranches: Record<string, BranchSummary[]> = {
+  "bank-001": [
+    { id: "branch-001", branchCode: "001", branchName: "東京営業部", branchNameKana: "トウキョウエイギョウブ" },
+    { id: "branch-002", branchCode: "002", branchName: "丸の内中央支店", branchNameKana: "マルノウチチュウオウシテン" },
+    { id: "branch-003", branchCode: "003", branchName: "八重洲口支店", branchNameKana: "ヤエスグチシテン" },
+    { id: "branch-004", branchCode: "004", branchName: "新宿支店", branchNameKana: "シンジュクシテン" },
+    { id: "branch-005", branchCode: "005", branchName: "渋谷支店", branchNameKana: "シブヤシテン" },
+    { id: "branch-006", branchCode: "006", branchName: "池袋支店", branchNameKana: "イケブクロシテン" },
+    { id: "branch-007", branchCode: "007", branchName: "上野支店", branchNameKana: "ウエノシテン" },
+    { id: "branch-008", branchCode: "008", branchName: "品川支店", branchNameKana: "シナガワシテン" },
+  ],
+  "bank-002": [
+    { id: "branch-101", branchCode: "001", branchName: "本店", branchNameKana: "ホンテン" },
+    { id: "branch-102", branchCode: "002", branchName: "東京営業部", branchNameKana: "トウキョウエイギョウブ" },
+    { id: "branch-103", branchCode: "010", branchName: "新宿支店", branchNameKana: "シンジュクシテン" },
+    { id: "branch-104", branchCode: "011", branchName: "渋谷支店", branchNameKana: "シブヤシテン" },
+    { id: "branch-105", branchCode: "012", branchName: "池袋支店", branchNameKana: "イケブクロシテン" },
+  ],
+  "bank-003": [
+    { id: "branch-201", branchCode: "001", branchName: "東京営業部", branchNameKana: "トウキョウエイギョウブ" },
+    { id: "branch-202", branchCode: "002", branchName: "銀座支店", branchNameKana: "ギンザシテン" },
+    { id: "branch-203", branchCode: "003", branchName: "日本橋支店", branchNameKana: "ニホンバシシテン" },
+    { id: "branch-204", branchCode: "010", branchName: "新宿支店", branchNameKana: "シンジュクシテン" },
+    { id: "branch-205", branchCode: "011", branchName: "渋谷支店", branchNameKana: "シブヤシテン" },
+  ],
+}
+
+// Mock company bank accounts (自社口座 - for 出金口座選択)
+const mockCompanyBankAccounts: CompanyBankAccountSummary[] = [
+  {
+    id: "company-bank-001",
+    accountName: "経費精算口座",
+    bankName: "みずほ銀行",
+    branchName: "丸の内支店",
+    accountNo: "1234567",
+    isActive: true,
+  },
+  {
+    id: "company-bank-002",
+    accountName: "仕入支払口座",
+    bankName: "三菱UFJ銀行",
+    branchName: "本店",
+    accountNo: "7654321",
+    isActive: true,
+  },
+  {
+    id: "company-bank-003",
+    accountName: "給与支払口座",
+    bankName: "三井住友銀行",
+    branchName: "東京営業部",
+    accountNo: "9876543",
+    isActive: true,
+  },
+  {
+    id: "company-bank-004",
+    accountName: "旧口座（停止）",
+    bankName: "りそな銀行",
+    branchName: "新宿支店",
+    accountNo: "1111111",
+    isActive: false,
   },
 ]
 
@@ -176,7 +343,11 @@ const mockPayees: PayeeDto[] = [
     paymentMethod: "銀行振込",
     currencyCode: "JPY",
     paymentTermsText: "月末締め翌月末払い",
+    defaultCompanyBankAccountId: "company-bank-002",
+    defaultCompanyBankAccountName: "仕入支払口座",
+    defaultCompanyBankName: "三菱UFJ銀行",
     isActive: true,
+    notes: "主要支払先",
     version: 1,
     createdAt: "2024-01-15T10:00:00Z",
     updatedAt: "2024-01-15T10:00:00Z",
@@ -202,7 +373,11 @@ const mockPayees: PayeeDto[] = [
     paymentMethod: "銀行振込",
     currencyCode: "JPY",
     paymentTermsText: "月末締め翌月末払い",
+    defaultCompanyBankAccountId: null,
+    defaultCompanyBankAccountName: null,
+    defaultCompanyBankName: null,
     isActive: true,
+    notes: null,
     version: 1,
     createdAt: "2024-01-15T11:00:00Z",
     updatedAt: "2024-01-15T11:00:00Z",
@@ -228,7 +403,11 @@ const mockPayees: PayeeDto[] = [
     paymentMethod: "銀行振込",
     currencyCode: "JPY",
     paymentTermsText: "20日締め翌月10日払い",
+    defaultCompanyBankAccountId: "company-bank-001",
+    defaultCompanyBankAccountName: "経費精算口座",
+    defaultCompanyBankName: "みずほ銀行",
     isActive: true,
+    notes: "大口取引先",
     version: 1,
     createdAt: "2024-01-16T12:00:00Z",
     updatedAt: "2024-01-16T12:00:00Z",
@@ -348,10 +527,22 @@ export class MockBffClient implements BffClient {
       partyCode: request.partyCode,
       partyName: request.partyName,
       partyNameKana: request.partyNameKana || null,
+      partyShortName: request.partyShortName || null,
+      countryCode: request.countryCode || null,
+      postalCode: request.postalCode || null,
+      prefecture: request.prefecture || null,
+      city: request.city || null,
+      addressLine1: request.addressLine1 || null,
+      addressLine2: request.addressLine2 || null,
+      phone: request.phone || null,
+      fax: request.fax || null,
+      websiteUrl: request.websiteUrl || null,
+      corporateNumber: request.corporateNumber || null,
+      invoiceRegistrationNo: request.invoiceRegistrationNo || null,
       isSupplier: false,
       isCustomer: false,
       isActive: request.isActive !== undefined ? request.isActive : true,
-      remarks: request.remarks || null,
+      notes: request.notes || null,
       version: 1,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -380,7 +571,19 @@ export class MockBffClient implements BffClient {
       ...party,
       partyName: request.partyName,
       partyNameKana: request.partyNameKana || null,
-      remarks: request.remarks || null,
+      partyShortName: request.partyShortName || null,
+      countryCode: request.countryCode || null,
+      postalCode: request.postalCode || null,
+      prefecture: request.prefecture || null,
+      city: request.city || null,
+      addressLine1: request.addressLine1 || null,
+      addressLine2: request.addressLine2 || null,
+      phone: request.phone || null,
+      fax: request.fax || null,
+      websiteUrl: request.websiteUrl || null,
+      corporateNumber: request.corporateNumber || null,
+      invoiceRegistrationNo: request.invoiceRegistrationNo || null,
+      notes: request.notes || null,
       isActive: request.isActive !== undefined ? request.isActive : party.isActive,
       version: party.version + 1,
       updatedAt: new Date().toISOString(),
@@ -479,7 +682,11 @@ export class MockBffClient implements BffClient {
         paymentMethod: request.paymentMethod || null,
         currencyCode: request.currencyCode || null,
         paymentTermsText: request.paymentTermsText || null,
+        defaultCompanyBankAccountId: null,
+        defaultCompanyBankAccountName: null,
+        defaultCompanyBankName: null,
         isActive: true,
+        notes: null,
         version: 1,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -512,7 +719,11 @@ export class MockBffClient implements BffClient {
         paymentMethod: null,
         currencyCode: "JPY",
         paymentTermsText: null,
+        defaultCompanyBankAccountId: null,
+        defaultCompanyBankAccountName: null,
+        defaultCompanyBankName: null,
         isActive: true,
+        notes: null,
         version: 1,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -523,6 +734,9 @@ export class MockBffClient implements BffClient {
       payeeId = newPayee.id
     }
 
+    // Get payee info for display
+    const payee = mockPayees.find((p) => p.id === payeeId)
+
     const newSupplierSite: SupplierSiteDto = {
       id: `supplier-site-${Date.now()}`,
       partyId: request.partyId,
@@ -531,6 +745,8 @@ export class MockBffClient implements BffClient {
       supplierName: request.supplierName,
       supplierNameKana: request.supplierNameKana || null,
       payeeId: payeeId!,
+      payeeCode: payee?.payeeCode || "",
+      payeeName: payee?.payeeName || "",
       postalCode: request.postalCode || null,
       prefecture: request.prefecture || null,
       city: request.city || null,
@@ -541,6 +757,7 @@ export class MockBffClient implements BffClient {
       email: request.email || null,
       contactName: request.contactName || null,
       isActive: true,
+      notes: request.notes || null,
       version: 1,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -579,6 +796,7 @@ export class MockBffClient implements BffClient {
       email: request.email || null,
       contactName: request.contactName || null,
       isActive: request.isActive !== undefined ? request.isActive : site.isActive,
+      notes: request.notes !== undefined ? (request.notes || null) : site.notes,
       version: site.version + 1,
       updatedAt: new Date().toISOString(),
       updatedBy: "current-user",
@@ -654,6 +872,11 @@ export class MockBffClient implements BffClient {
       throw new Error("PAYEE_CODE_DUPLICATE")
     }
 
+    // Get company bank account info if specified
+    const companyBankAccount = request.defaultCompanyBankAccountId
+      ? mockCompanyBankAccounts.find((a) => a.id === request.defaultCompanyBankAccountId)
+      : null
+
     const newPayee: PayeeDto = {
       id: `payee-${Date.now()}`,
       partyId: request.partyId,
@@ -673,7 +896,11 @@ export class MockBffClient implements BffClient {
       paymentMethod: request.paymentMethod || null,
       currencyCode: request.currencyCode || null,
       paymentTermsText: request.paymentTermsText || null,
+      defaultCompanyBankAccountId: request.defaultCompanyBankAccountId || null,
+      defaultCompanyBankAccountName: companyBankAccount?.accountName || null,
+      defaultCompanyBankName: companyBankAccount?.bankName || null,
       isActive: true,
+      notes: request.notes || null,
       version: 1,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -698,6 +925,11 @@ export class MockBffClient implements BffClient {
       throw new Error("CONCURRENT_UPDATE")
     }
 
+    // Get company bank account info if specified
+    const companyBankAccount = request.defaultCompanyBankAccountId
+      ? mockCompanyBankAccounts.find((a) => a.id === request.defaultCompanyBankAccountId)
+      : null
+
     const updated: PayeeDto = {
       ...payee,
       payeeName: request.payeeName,
@@ -714,7 +946,17 @@ export class MockBffClient implements BffClient {
       paymentMethod: request.paymentMethod || null,
       currencyCode: request.currencyCode || null,
       paymentTermsText: request.paymentTermsText || null,
+      defaultCompanyBankAccountId: request.defaultCompanyBankAccountId !== undefined
+        ? request.defaultCompanyBankAccountId
+        : payee.defaultCompanyBankAccountId,
+      defaultCompanyBankAccountName: request.defaultCompanyBankAccountId !== undefined
+        ? (companyBankAccount?.accountName || null)
+        : payee.defaultCompanyBankAccountName,
+      defaultCompanyBankName: request.defaultCompanyBankAccountId !== undefined
+        ? (companyBankAccount?.bankName || null)
+        : payee.defaultCompanyBankName,
       isActive: request.isActive !== undefined ? request.isActive : payee.isActive,
+      notes: request.notes !== undefined ? (request.notes || null) : payee.notes,
       version: payee.version + 1,
       updatedAt: new Date().toISOString(),
       updatedBy: "current-user",
@@ -722,5 +964,175 @@ export class MockBffClient implements BffClient {
 
     mockPayees[index] = updated
     return { payee: updated }
+  }
+
+  // Payee Bank Account methods
+  async listPayeeBankAccounts(request: ListPayeeBankAccountsRequest): Promise<ListPayeeBankAccountsResponse> {
+    await delay(200)
+    const filtered = mockPayeeBankAccounts.filter((a) => a.payeeId === request.payeeId)
+    return {
+      items: filtered,
+      total: filtered.length,
+    }
+  }
+
+  async createPayeeBankAccount(request: CreatePayeeBankAccountRequest): Promise<CreatePayeeBankAccountResponse> {
+    await delay(500)
+
+    const newAccount: PayeeBankAccountDto = {
+      id: `bank-account-${Date.now()}`,
+      payeeId: request.payeeId,
+      accountCategory: request.accountCategory,
+      bankId: request.bankId || null,
+      bankBranchId: request.bankBranchId || null,
+      bankCode: request.accountCategory === "bank" ? "0001" : null,
+      bankName: request.accountCategory === "bank" ? "サンプル銀行" : null,
+      branchCode: request.accountCategory === "bank" ? "001" : null,
+      branchName: request.accountCategory === "bank" ? "サンプル支店" : null,
+      postOfficeSymbol: request.postOfficeSymbol || null,
+      postOfficeNumber: request.postOfficeNumber || null,
+      accountType: request.accountType,
+      accountNo: request.accountNo || null,
+      accountHolderName: request.accountHolderName,
+      accountHolderNameKana: request.accountHolderNameKana || null,
+      transferFeeBearer: request.transferFeeBearer,
+      isDefault: request.isDefault || false,
+      isActive: true,
+      notes: request.notes || null,
+      version: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: "current-user",
+      updatedBy: "current-user",
+    }
+
+    // If setting as default, clear other defaults
+    if (newAccount.isDefault) {
+      mockPayeeBankAccounts
+        .filter((a) => a.payeeId === request.payeeId)
+        .forEach((a) => (a.isDefault = false))
+    }
+
+    mockPayeeBankAccounts.push(newAccount)
+    return { account: newAccount }
+  }
+
+  async updatePayeeBankAccount(id: string, request: UpdatePayeeBankAccountRequest): Promise<UpdatePayeeBankAccountResponse> {
+    await delay(500)
+
+    const index = mockPayeeBankAccounts.findIndex((a) => a.id === id)
+    if (index === -1) {
+      throw new Error("PAYEE_BANK_ACCOUNT_NOT_FOUND")
+    }
+
+    const account = mockPayeeBankAccounts[index]
+    if (account.version !== request.version) {
+      throw new Error("CONCURRENT_UPDATE")
+    }
+
+    // If setting as default, clear other defaults
+    if (request.isDefault && !account.isDefault) {
+      mockPayeeBankAccounts
+        .filter((a) => a.payeeId === account.payeeId && a.id !== id)
+        .forEach((a) => (a.isDefault = false))
+    }
+
+    const updated: PayeeBankAccountDto = {
+      ...account,
+      accountCategory: request.accountCategory,
+      bankId: request.bankId || null,
+      bankBranchId: request.bankBranchId || null,
+      postOfficeSymbol: request.postOfficeSymbol || null,
+      postOfficeNumber: request.postOfficeNumber || null,
+      accountType: request.accountType,
+      accountNo: request.accountNo || null,
+      accountHolderName: request.accountHolderName,
+      accountHolderNameKana: request.accountHolderNameKana || null,
+      transferFeeBearer: request.transferFeeBearer,
+      isDefault: request.isDefault,
+      isActive: request.isActive,
+      notes: request.notes || null,
+      version: account.version + 1,
+      updatedAt: new Date().toISOString(),
+      updatedBy: "current-user",
+    }
+
+    mockPayeeBankAccounts[index] = updated
+    return { account: updated }
+  }
+
+  // Bank / Branch Search methods
+  async searchBanks(request: SearchBanksRequest): Promise<SearchBanksResponse> {
+    await delay(200)
+
+    const keyword = request.keyword.toLowerCase()
+    const limit = request.limit || 10
+
+    // Skip search if keyword is too short
+    if (keyword.length < 2) {
+      return { items: [], total: 0 }
+    }
+
+    // Filter banks by keyword (code prefix or name contains)
+    const filtered = mockBanks.filter(
+      (bank) =>
+        bank.bankCode.startsWith(keyword) ||
+        bank.bankName.toLowerCase().includes(keyword) ||
+        bank.bankNameKana?.toLowerCase().includes(keyword),
+    )
+
+    const items = filtered.slice(0, limit)
+
+    return {
+      items,
+      total: filtered.length,
+    }
+  }
+
+  async searchBranches(request: SearchBranchesRequest): Promise<SearchBranchesResponse> {
+    await delay(200)
+
+    const keyword = request.keyword.toLowerCase()
+    const limit = request.limit || 10
+
+    // Get branches for the specified bank
+    const branches = mockBranches[request.bankId] || []
+
+    // Skip search if keyword is too short
+    if (keyword.length < 2) {
+      return { items: [], total: 0 }
+    }
+
+    // Filter branches by keyword (code prefix or name contains)
+    const filtered = branches.filter(
+      (branch) =>
+        branch.branchCode.startsWith(keyword) ||
+        branch.branchName.toLowerCase().includes(keyword) ||
+        branch.branchNameKana?.toLowerCase().includes(keyword),
+    )
+
+    const items = filtered.slice(0, limit)
+
+    return {
+      items,
+      total: filtered.length,
+    }
+  }
+
+  // Company Bank Account methods (自社口座 - for 出金口座選択)
+  async listCompanyBankAccounts(request: ListCompanyBankAccountsRequest): Promise<ListCompanyBankAccountsResponse> {
+    await delay(200)
+
+    let filtered = [...mockCompanyBankAccounts]
+
+    // Filter by isActive if specified
+    if (request.isActive !== undefined) {
+      filtered = filtered.filter((a) => a.isActive === request.isActive)
+    }
+
+    return {
+      items: filtered,
+      total: filtered.length,
+    }
   }
 }

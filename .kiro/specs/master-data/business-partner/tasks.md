@@ -499,6 +499,200 @@
 
 ---
 
+## 13. PayeeBankAccount（支払先口座）with Bank Master Selection
+
+> **追加タスク**: 銀行マスタ連携による口座選択機能
+
+- [ ] 13. PayeeBankAccount機能実装
+- [ ] 13.1 (P) PayeeBankAccount BFF契約を定義
+  - `packages/contracts/src/bff/business-partner/index.ts` に PayeeBankAccount用の型定義を追加
+  - ListPayeeBankAccountsRequest / ListPayeeBankAccountsResponse
+  - CreatePayeeBankAccountRequest / CreatePayeeBankAccountResponse
+  - UpdatePayeeBankAccountRequest / UpdatePayeeBankAccountResponse
+  - PayeeBankAccountDto（accountCategory, bankId, bankCode, bankName, branchCode, branchName, accountType, accountNo, etc.）
+  - AccountCategory type（'bank' | 'post_office' | 'ja_bank'）
+  - AccountType type（'ordinary' | 'current' | 'savings' | 'other'）
+  - TransferFeeBearer type（'sender' | 'recipient'）
+  - _Requirements: 15.1, 15.2_
+
+- [ ] 13.2 (P) 銀行・支店検索 BFF契約を定義
+  - `packages/contracts/src/bff/business-partner/index.ts` に 検索API用の型定義を追加
+  - SearchBanksRequest / SearchBanksResponse（keyword, limit）
+  - SearchBranchesRequest / SearchBranchesResponse（bankId, keyword, limit）
+  - BankSummary（id, bankCode, bankName, bankNameKana）
+  - BranchSummary（id, branchCode, branchName, branchNameKana）
+  - _Requirements: 15.4, 15.5, 15.6_
+
+- [ ] 13.3 (P) PayeeBankAccount API契約を定義
+  - `packages/contracts/src/api/business-partner/index.ts` に PayeeBankAccount用の型定義を追加
+  - ListPayeeBankAccountsApiRequest / ListPayeeBankAccountsApiResponse
+  - CreatePayeeBankAccountApiRequest / CreatePayeeBankAccountApiResponse
+  - UpdatePayeeBankAccountApiRequest / UpdatePayeeBankAccountApiResponse
+  - `packages/contracts/src/api/errors/business-partner-error.ts` に追加エラーコードを定義
+  - PAYEE_BANK_ACCOUNT_NOT_FOUND, BANK_NOT_FOUND, BANK_BRANCH_NOT_FOUND
+  - _Requirements: 15.1, 15.2, 15.9_
+
+- [ ] 13.4 Prisma Schemaにpayee_bank_accountsテーブル定義を追加
+  - `packages/db/prisma/schema.prisma` に PayeeBankAccount model を追加
+  - id, tenant_id, payee_id（FK）, account_category, bank_id, bank_branch_id, bank_code, bank_name, branch_code, branch_name, post_office_symbol, post_office_number, account_type, account_no, account_holder_name, account_holder_name_kana, transfer_fee_bearer, is_default, is_active, notes, version, 監査列
+  - UNIQUE制約: @@unique([tenant_id, payee_id, id])
+  - INDEX: @@index([tenant_id, payee_id]), @@index([tenant_id, is_active])
+  - Payee model に bankAccounts relation を追加
+  - 実行: `npx prisma migrate dev --name add_payee_bank_accounts`
+  - _Requirements: 15.1, 15.2, 9.1_
+
+- [ ] 13.5 PayeeBankAccountRepositoryを実装
+  - `apps/api/src/modules/master-data/business-partner/repositories/payee-bank-account.repository.ts` を作成
+  - listByPayee(tenantId, payeeId, isActive?) メソッド実装
+  - findById(id, tenantId) メソッド実装
+  - create(data, userId) メソッド実装
+  - update(id, version, data, userId) メソッド実装
+  - すべてのクエリに `WHERE tenant_id = ?` を含める（double-guard）
+  - _Requirements: 15.1, 15.2, 9.2, 9.3_
+
+- [ ] 13.6 PayeeBankAccountServiceを実装
+  - `apps/api/src/modules/master-data/business-partner/services/payee-bank-account.service.ts` を作成
+  - listByPayee メソッド実装
+  - getById メソッド実装（PAYEE_BANK_ACCOUNT_NOT_FOUND エラーハンドリング）
+  - create メソッド実装:
+    - Payee存在確認（PAYEE_NOT_FOUND エラーハンドリング）
+    - accountCategory='bank'/'ja_bank' の場合、BankMasterService から銀行・支店情報取得
+    - 銀行コード・銀行名・支店コード・支店名を非正規化してDB保存
+    - isDefault=true の場合、同一Payee配下の他口座を isDefault=false に更新（同一トランザクション）
+  - update メソッド実装（version チェック、CONCURRENT_UPDATE エラーハンドリング）
+  - BankMasterService をDI（銀行・支店情報取得）
+  - _Requirements: 15.1, 15.2, 15.4, 15.5, 15.7, 15.8_
+
+- [ ] 13.7 PayeeBankAccountControllerを実装
+  - `apps/api/src/modules/master-data/business-partner/controllers/payee-bank-account.controller.ts` を作成
+  - GET /api/domain/master-data/business-partner/payees/:payeeId/bank-accounts（listByPayee）
+  - POST /api/domain/master-data/business-partner/payees/:payeeId/bank-accounts（create）
+  - PUT /api/domain/master-data/business-partner/payee-bank-accounts/:id（update）
+  - API契約を使用
+  - _Requirements: 15.1, 15.2_
+
+- [ ] 13.8 PayeeBankAccountModuleを実装
+  - `apps/api/src/modules/master-data/business-partner/payee-bank-account.module.ts` を作成
+  - PayeeBankAccountService, PayeeBankAccountRepository, PayeeBankAccountController をモジュールに登録
+  - BankMasterModule をインポート（銀行・支店情報取得）
+  - _Requirements: 15.1_
+
+- [ ] 13.9 BankSearchController（BFF）を実装
+  - `apps/bff/src/modules/master-data/business-partner/controllers/bank-search.controller.ts` を作成
+  - GET /api/bff/master-data/business-partner/banks/search（searchBanks）
+  - GET /api/bff/master-data/business-partner/banks/:bankId/branches/search（searchBranches）
+  - BankMasterAPI Client を呼び出し
+  - 検索結果は最大10件（limit）に制限
+  - BFF契約（SearchBanksRequest/Response等）を使用
+  - _Requirements: 15.4, 15.5, 15.6_
+
+- [ ] 13.10 PayeeBankAccount BFF Serviceを実装
+  - `apps/bff/src/modules/master-data/business-partner/services/payee-bank-account-bff.service.ts` を作成
+  - listPayeeBankAccounts メソッド実装
+  - createPayeeBankAccount メソッド実装
+  - updatePayeeBankAccount メソッド実装
+  - Error Policy: Pass-through
+  - _Requirements: 15.1, 15.2_
+
+- [ ] 13.11 PayeeBankAccount BFF Controllerエンドポイント追加
+  - `apps/bff/src/modules/master-data/business-partner/controllers/business-partner-bff.controller.ts` に追加
+  - GET /api/bff/master-data/business-partner/payees/:payeeId/bank-accounts
+  - POST /api/bff/master-data/business-partner/payees/:payeeId/bank-accounts
+  - PUT /api/bff/master-data/business-partner/payee-bank-accounts/:id
+  - BFF契約を使用
+  - _Requirements: 15.1, 15.2_
+
+- [ ] 13.12 UI: BffClientに銀行・支店検索API追加
+  - `apps/web/src/features/master-data/business-partner/ui/api/BffClient.ts` に追加
+  - searchBanks(request: SearchBanksRequest): Promise<SearchBanksResponse>
+  - searchBranches(request: SearchBranchesRequest): Promise<SearchBranchesResponse>
+  - `apps/web/src/features/master-data/business-partner/ui/types/bff-contracts.ts` に型定義追加
+  - MockBffClient / HttpBffClient に実装追加
+  - _Requirements: 15.4, 15.5, 15.6_
+
+- [ ] 13.13 UI: PayeeDialogに銀行・支店選択UI実装
+  - `apps/web/src/features/master-data/business-partner/ui/components/PayeeDialog.tsx` を修正
+  - 口座区分セレクター（銀行/ゆうちょ/農協）を実装
+  - 銀行サジェスト入力（BankSuggestInput）を実装:
+    - 2文字以上入力で searchBanks API 呼び出し（debounce 300ms）
+    - ドロップダウンで候補表示（最大10件）
+    - 選択時に bankId を内部保持、表示は「銀行名 (銀行コード)」
+  - 支店サジェスト入力（BranchSuggestInput）を実装:
+    - 銀行未選択時は disabled
+    - 銀行選択後に有効化、searchBranches API 呼び出し
+    - 選択時に bankBranchId を内部保持
+  - ゆうちょ選択時は記号・番号入力フィールドを表示
+  - フォーム送信時に bankId / bankBranchId を送信（コード・名称はAPI側で解決）
+  - _Requirements: 15.4, 15.5, 15.6, 15.7_
+
+- [ ] 13.14 PayeeBankAccount統合テスト
+  - PayeeBankAccount作成（銀行選択）→ 銀行コード・銀行名が自動取得されていることを確認
+  - PayeeBankAccount作成（ゆうちょ）→ 記号・番号が保存されていることを確認
+  - isDefault=true 設定 → 同一Payee配下の他口座が isDefault=false になることを確認
+  - 存在しない銀行ID/支店ID でエラー（BANK_NOT_FOUND, BANK_BRANCH_NOT_FOUND）を確認
+  - _Requirements: 15.1, 15.2, 15.4, 15.5, 15.7, 15.8, 15.9_
+
+---
+
+## 14. Payeeデフォルト出金口座設定（Requirement 16）
+
+> **追加タスク**: 支払先ごとにデフォルト出金口座（自社口座）を設定
+
+- [ ] 14. Payeeデフォルト出金口座機能実装
+- [ ] 14.1 Prisma SchemaにPayee.defaultCompanyBankAccountIdを追加
+  - `packages/db/prisma/schema.prisma` の Payee model に追加
+  - `defaultCompanyBankAccountId String? @map("default_company_bank_account_id")`
+  - FK制約は設定しない（company_bank_accountsが別ドメインのため、参照整合性はアプリ層で担保）
+  - 実行: `npx prisma migrate dev --name add_payee_default_company_bank_account`
+  - _Requirements: 16.3_
+
+- [ ] 14.2 PayeeDto / CreatePayeeRequest / UpdatePayeeRequest を更新
+  - `packages/contracts/src/bff/business-partner/index.ts` に追加
+  - PayeeDto: `defaultCompanyBankAccountId?: string | null`
+  - CreatePayeeRequest: `defaultCompanyBankAccountId?: string`
+  - UpdatePayeeRequest: `defaultCompanyBankAccountId?: string | null`
+  - _Requirements: 16.1, 16.3_
+
+- [ ] 14.3 PayeeRepository / PayeeService を更新
+  - create / update メソッドで `defaultCompanyBankAccountId` を保存
+  - 存在チェックはオプション（自社口座マスタが別ドメインのため）
+  - _Requirements: 16.3, 16.4_
+
+- [ ] 14.4 BFF: 自社口座一覧取得エンドポイント追加
+  - `apps/bff/src/modules/master-data/business-partner/controllers/business-partner-bff.controller.ts` に追加
+  - GET /api/bff/master-data/business-partner/company-bank-accounts
+  - CompanyBankAccountModule のAPIを呼び出し、isActive=trueのみ返す
+  - Response: `{ items: CompanyBankAccountSummary[] }`
+  - _Requirements: 16.2_
+
+- [ ] 14.5 UI: bff-contracts.ts に CompanyBankAccountSummary 型追加
+  - `apps/web/src/features/master-data/business-partner/ui/types/bff-contracts.ts` に追加
+  - `CompanyBankAccountSummary { id, accountName, bankName, branchName, accountType, accountNo }`
+  - `ListCompanyBankAccountsResponse { items: CompanyBankAccountSummary[] }`
+  - _Requirements: 16.2_
+
+- [ ] 14.6 UI: BffClient に listCompanyBankAccounts メソッド追加
+  - `apps/web/src/features/master-data/business-partner/ui/api/BffClient.ts` に追加
+  - MockBffClient / HttpBffClient に実装追加
+  - _Requirements: 16.2_
+
+- [ ] 14.7 UI: PayeeDialogにデフォルト出金口座選択UIを追加
+  - `apps/web/src/features/master-data/business-partner/ui/components/PayeeDialog.tsx` を修正
+  - 「支払設定」セクションに「デフォルト出金口座」ドロップダウンを追加
+  - ダイアログ表示時に自社口座一覧を取得
+  - 選択肢: （未設定）+ isActive=true の自社口座
+  - 表示形式: `{銀行名} {支店名} {口座種別} {口座番号} {口座名称}`
+  - 保存時に `defaultCompanyBankAccountId` を送信
+  - _Requirements: 16.1, 16.2, 16.6_
+
+- [ ] 14.8 デフォルト出金口座統合テスト
+  - Payee作成時にdefaultCompanyBankAccountId設定 → 保存・取得確認
+  - Payee更新時にdefaultCompanyBankAccountId変更 → 更新・取得確認
+  - 存在しない自社口座IDで登録 → エラーまたは警告の動作確認
+  - _Requirements: 16.1, 16.3, 16.4, 16.5_
+
+---
+
 ## Requirements Coverage Matrix
 
 | Requirement | Tasks |
@@ -517,6 +711,8 @@
 | 12.1 - 12.5 | 2.1, 3.1, 4.1, 9.1, 9.2, 11.5, 12.4 |
 | 13.1 - 13.4 | 2.2, 10.1, 10.2, 12.3, 12.4 |
 | 14.1 - 14.5 | 3.5, 11.2, 12.4 |
+| 15.1 - 15.10 | 13.1, 13.2, 13.3, 13.4, 13.5, 13.6, 13.7, 13.8, 13.9, 13.10, 13.11, 13.12, 13.13, 13.14 |
+| 16.1 - 16.6 | 14.1, 14.2, 14.3, 14.4, 14.5, 14.6, 14.7, 14.8 |
 
 ---
 

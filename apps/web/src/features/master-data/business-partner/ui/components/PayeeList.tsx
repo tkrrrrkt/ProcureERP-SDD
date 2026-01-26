@@ -133,6 +133,7 @@ export function PayeeList({ partyId, party }: { partyId: string; party: PartyDto
               <TableHead>電話</TableHead>
               <TableHead>支払方法</TableHead>
               <TableHead>通貨</TableHead>
+              <TableHead>出金口座</TableHead>
               <TableHead>有効</TableHead>
               <TableHead>操作</TableHead>
             </TableRow>
@@ -140,13 +141,13 @@ export function PayeeList({ partyId, party }: { partyId: string; party: PartyDto
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-8">
+                <TableCell colSpan={11} className="text-center py-8">
                   読み込み中...
                 </TableCell>
               </TableRow>
             ) : payees.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                   データがありません
                 </TableCell>
               </TableRow>
@@ -161,6 +162,11 @@ export function PayeeList({ partyId, party }: { partyId: string; party: PartyDto
                   <TableCell>{payee.phone || "-"}</TableCell>
                   <TableCell>{payee.paymentMethod || "-"}</TableCell>
                   <TableCell>{payee.currencyCode || "-"}</TableCell>
+                  <TableCell>
+                    {payee.defaultCompanyBankAccountName
+                      ? `${payee.defaultCompanyBankAccountName} (${payee.defaultCompanyBankName})`
+                      : "-"}
+                  </TableCell>
                   <TableCell>{payee.isActive ? "有効" : "無効"}</TableCell>
                   <TableCell>
                     <Button

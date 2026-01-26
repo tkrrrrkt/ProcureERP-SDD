@@ -1,7 +1,19 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import type { PartyDto, PayeeDto, CreatePayeeRequest, UpdatePayeeRequest } from "../types/bff-contracts"
+import { useState, useEffect, useCallback, useRef } from "react"
+import type {
+  PartyDto,
+  PayeeDto,
+  CreatePayeeRequest,
+  UpdatePayeeRequest,
+  PayeeBankAccountDto,
+  AccountCategory,
+  AccountType,
+  TransferFeeBearer,
+  BankSummary,
+  BranchSummary,
+  CompanyBankAccountSummary,
+} from "../types/bff-contracts"
 import { bffClient } from "../api/client"
 import { getErrorMessage } from "../utils/error-messages"
 import { normalizeCode, validateCodeLength } from "../utils/code-normalizer"
@@ -74,6 +86,28 @@ function Input({ label, value, onChange, placeholder, error, maxLength, required
   )
 }
 
+function Select({ label, value, onChange, options, required, disabled }: any) {
+  return (
+    <div className="space-y-1">
+      <label className="text-sm font-medium">
+        {label} {required && <span className="text-destructive">*</span>}
+      </label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        className={`w-full px-3 py-2 border border-input rounded-lg bg-background text-sm ${disabled ? "opacity-50" : ""}`}
+      >
+        {options.map((opt: { value: string; label: string }) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  )
+}
+
 function Textarea({ label, value, onChange, placeholder, rows = 3 }: any) {
   return (
     <div className="space-y-1">
@@ -103,6 +137,311 @@ function Alert({ children, variant = "default" }: any) {
   return <div className={`p-3 rounded-lg border text-sm ${variantClass}`}>{children}</div>
 }
 
+// BankSuggestInput - Suggest input for bank selection
+function BankSuggestInput({
+  label,
+  value,
+  displayValue,
+  onSelect,
+  placeholder,
+  error,
+  required,
+  disabled,
+}: {
+  label: string
+  value: string | null
+  displayValue: string
+  onSelect: (bank: BankSummary | null) => void
+  placeholder?: string
+  error?: string
+  required?: boolean
+  disabled?: boolean
+}) {
+  const [inputValue, setInputValue] = useState(displayValue)
+  const [isOpen, setIsOpen] = useState(false)
+  const [suggestions, setSuggestions] = useState<BankSummary[]>([])
+  const [loading, setLoading] = useState(false)
+  const debounceRef = useRef<NodeJS.Timeout | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setInputValue(displayValue)
+  }, [displayValue])
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  const handleInputChange = (newValue: string) => {
+    setInputValue(newValue)
+
+    // Clear selection if input changes
+    if (value && newValue !== displayValue) {
+      onSelect(null)
+    }
+
+    // Debounce search
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
+    }
+
+    if (newValue.length >= 2) {
+      debounceRef.current = setTimeout(async () => {
+        setLoading(true)
+        try {
+          const response = await bffClient.searchBanks({ keyword: newValue, limit: 10 })
+          setSuggestions(response.items)
+          setIsOpen(true)
+        } catch {
+          setSuggestions([])
+        } finally {
+          setLoading(false)
+        }
+      }, 300)
+    } else {
+      setSuggestions([])
+      setIsOpen(false)
+    }
+  }
+
+  const handleSelect = (bank: BankSummary) => {
+    onSelect(bank)
+    setInputValue(`${bank.bankName} (${bank.bankCode})`)
+    setIsOpen(false)
+    setSuggestions([])
+  }
+
+  const handleClear = () => {
+    onSelect(null)
+    setInputValue("")
+    setSuggestions([])
+  }
+
+  return (
+    <div className="space-y-1" ref={containerRef}>
+      <label className="text-sm font-medium">
+        {label} {required && <span className="text-destructive">*</span>}
+      </label>
+      <div className="relative">
+        <input
+          type="text"
+          value={inputValue}
+          onChange={(e) => handleInputChange(e.target.value)}
+          onFocus={() => suggestions.length > 0 && setIsOpen(true)}
+          placeholder={placeholder}
+          disabled={disabled}
+          className={`w-full px-3 py-2 border rounded-lg bg-background text-sm pr-8 ${error ? "border-destructive" : "border-input"} ${disabled ? "opacity-50" : ""}`}
+        />
+        {value && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          >
+            ×
+          </button>
+        )}
+        {loading && (
+          <span className="absolute right-8 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
+            検索中...
+          </span>
+        )}
+        {isOpen && suggestions.length > 0 && (
+          <div className="absolute z-50 w-full mt-1 bg-background border border-input rounded-lg shadow-lg max-h-60 overflow-y-auto">
+            {suggestions.map((bank) => (
+              <button
+                key={bank.id}
+                type="button"
+                onClick={() => handleSelect(bank)}
+                className="w-full px-3 py-2 text-left text-sm hover:bg-accent flex justify-between items-center"
+              >
+                <span>{bank.bankName}</span>
+                <span className="text-muted-foreground">{bank.bankCode}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+    </div>
+  )
+}
+
+// BranchSuggestInput - Suggest input for branch selection
+function BranchSuggestInput({
+  label,
+  bankId,
+  value,
+  displayValue,
+  onSelect,
+  placeholder,
+  error,
+  required,
+  disabled,
+}: {
+  label: string
+  bankId: string | null
+  value: string | null
+  displayValue: string
+  onSelect: (branch: BranchSummary | null) => void
+  placeholder?: string
+  error?: string
+  required?: boolean
+  disabled?: boolean
+}) {
+  const [inputValue, setInputValue] = useState(displayValue)
+  const [isOpen, setIsOpen] = useState(false)
+  const [suggestions, setSuggestions] = useState<BranchSummary[]>([])
+  const [loading, setLoading] = useState(false)
+  const debounceRef = useRef<NodeJS.Timeout | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const isDisabled = disabled || !bankId
+
+  useEffect(() => {
+    setInputValue(displayValue)
+  }, [displayValue])
+
+  // Clear branch when bank changes
+  useEffect(() => {
+    if (!bankId && value) {
+      onSelect(null)
+      setInputValue("")
+    }
+  }, [bankId])
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  const handleInputChange = (newValue: string) => {
+    setInputValue(newValue)
+
+    // Clear selection if input changes
+    if (value && newValue !== displayValue) {
+      onSelect(null)
+    }
+
+    // Debounce search
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
+    }
+
+    if (newValue.length >= 2 && bankId) {
+      debounceRef.current = setTimeout(async () => {
+        setLoading(true)
+        try {
+          const response = await bffClient.searchBranches({ bankId, keyword: newValue, limit: 10 })
+          setSuggestions(response.items)
+          setIsOpen(true)
+        } catch {
+          setSuggestions([])
+        } finally {
+          setLoading(false)
+        }
+      }, 300)
+    } else {
+      setSuggestions([])
+      setIsOpen(false)
+    }
+  }
+
+  const handleSelect = (branch: BranchSummary) => {
+    onSelect(branch)
+    setInputValue(`${branch.branchName} (${branch.branchCode})`)
+    setIsOpen(false)
+    setSuggestions([])
+  }
+
+  const handleClear = () => {
+    onSelect(null)
+    setInputValue("")
+    setSuggestions([])
+  }
+
+  return (
+    <div className="space-y-1" ref={containerRef}>
+      <label className="text-sm font-medium">
+        {label} {required && <span className="text-destructive">*</span>}
+      </label>
+      <div className="relative">
+        <input
+          type="text"
+          value={inputValue}
+          onChange={(e) => handleInputChange(e.target.value)}
+          onFocus={() => suggestions.length > 0 && setIsOpen(true)}
+          placeholder={isDisabled && !disabled ? "銀行を先に選択してください" : placeholder}
+          disabled={isDisabled}
+          className={`w-full px-3 py-2 border rounded-lg bg-background text-sm pr-8 ${error ? "border-destructive" : "border-input"} ${isDisabled ? "opacity-50" : ""}`}
+        />
+        {value && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          >
+            ×
+          </button>
+        )}
+        {loading && (
+          <span className="absolute right-8 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
+            検索中...
+          </span>
+        )}
+        {isOpen && suggestions.length > 0 && (
+          <div className="absolute z-50 w-full mt-1 bg-background border border-input rounded-lg shadow-lg max-h-60 overflow-y-auto">
+            {suggestions.map((branch) => (
+              <button
+                key={branch.id}
+                type="button"
+                onClick={() => handleSelect(branch)}
+                className="w-full px-3 py-2 text-left text-sm hover:bg-accent flex justify-between items-center"
+              >
+                <span>{branch.branchName}</span>
+                <span className="text-muted-foreground">{branch.branchCode}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+    </div>
+  )
+}
+
+// Account category options
+const accountCategoryOptions = [
+  { value: "bank", label: "銀行" },
+  { value: "post_office", label: "ゆうちょ銀行" },
+  { value: "ja_bank", label: "農協" },
+]
+
+// Account type options
+const accountTypeOptions = [
+  { value: "ordinary", label: "普通" },
+  { value: "current", label: "当座" },
+  { value: "savings", label: "貯蓄" },
+  { value: "other", label: "その他" },
+]
+
+// Transfer fee bearer options
+const transferFeeBearerOptions = [
+  { value: "sender", label: "当社負担" },
+  { value: "recipient", label: "先方負担" },
+]
+
 export function PayeeDialog({
   open,
   onOpenChange,
@@ -120,6 +459,7 @@ export function PayeeDialog({
 }) {
   const isEdit = !!payee
 
+  // Payee fields
   const [payeeSubCode, setPayeeSubCode] = useState("")
   const [payeeName, setPayeeName] = useState("")
   const [payeeNameKana, setPayeeNameKana] = useState("")
@@ -137,10 +477,53 @@ export function PayeeDialog({
   const [paymentTermsText, setPaymentTermsText] = useState("")
   const [isActive, setIsActive] = useState(true)
 
+  // Bank account fields
+  const [bankAccount, setBankAccount] = useState<PayeeBankAccountDto | null>(null)
+  const [accountCategory, setAccountCategory] = useState<AccountCategory>("bank")
+  const [accountType, setAccountType] = useState<AccountType>("ordinary")
+  const [accountNo, setAccountNo] = useState("")
+  const [postOfficeSymbol, setPostOfficeSymbol] = useState("")
+  const [postOfficeNumber, setPostOfficeNumber] = useState("")
+  const [accountHolderName, setAccountHolderName] = useState("")
+  const [accountHolderNameKana, setAccountHolderNameKana] = useState("")
+  const [transferFeeBearer, setTransferFeeBearer] = useState<TransferFeeBearer>("sender")
+  const [bankAccountNotes, setBankAccountNotes] = useState("")
+
+  // Bank/Branch selection state (for bank master integration)
+  const [selectedBankId, setSelectedBankId] = useState<string | null>(null)
+  const [selectedBankDisplay, setSelectedBankDisplay] = useState("")
+  const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null)
+  const [selectedBranchDisplay, setSelectedBranchDisplay] = useState("")
+
+  // Company bank account (出金口座) state
+  const [companyBankAccounts, setCompanyBankAccounts] = useState<CompanyBankAccountSummary[]>([])
+  const [selectedCompanyBankAccountId, setSelectedCompanyBankAccountId] = useState<string>("")
+  const [loadingCompanyBankAccounts, setLoadingCompanyBankAccounts] = useState(false)
+
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [apiError, setApiError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
+  // Load company bank accounts when dialog opens
+  useEffect(() => {
+    if (open) {
+      loadCompanyBankAccounts()
+    }
+  }, [open])
+
+  const loadCompanyBankAccounts = async () => {
+    setLoadingCompanyBankAccounts(true)
+    try {
+      const response = await bffClient.listCompanyBankAccounts({ isActive: true })
+      setCompanyBankAccounts(response.items)
+    } catch {
+      setCompanyBankAccounts([])
+    } finally {
+      setLoadingCompanyBankAccounts(false)
+    }
+  }
+
+  // Load payee and bank account data
   useEffect(() => {
     if (payee) {
       setPayeeSubCode(payee.payeeSubCode)
@@ -159,33 +542,131 @@ export function PayeeDialog({
       setCurrencyCode(payee.currencyCode || "JPY")
       setPaymentTermsText(payee.paymentTermsText || "")
       setIsActive(payee.isActive)
+      // Set default company bank account
+      setSelectedCompanyBankAccountId(payee.defaultCompanyBankAccountId || "")
+
+      // Load bank account
+      loadBankAccount(payee.id)
     } else {
-      setPayeeSubCode("")
-      setPayeeName("")
-      setPayeeNameKana("")
-      setPostalCode("")
-      setPrefecture("")
-      setCity("")
-      setAddressLine1("")
-      setAddressLine2("")
-      setPhone("")
-      setFax("")
-      setEmail("")
-      setContactName("")
-      setPaymentMethod("")
-      setCurrencyCode("JPY")
-      setPaymentTermsText("")
-      setIsActive(true)
+      resetForm()
     }
     setErrors({})
     setApiError(null)
   }, [payee, open])
+
+  const loadBankAccount = async (payeeId: string) => {
+    try {
+      const response = await bffClient.listPayeeBankAccounts({ payeeId })
+      if (response.items.length > 0) {
+        const account = response.items[0]
+        setBankAccount(account)
+        setAccountCategory(account.accountCategory)
+        setAccountType(account.accountType)
+        setAccountNo(account.accountNo || "")
+        setPostOfficeSymbol(account.postOfficeSymbol || "")
+        setPostOfficeNumber(account.postOfficeNumber || "")
+        setAccountHolderName(account.accountHolderName)
+        setAccountHolderNameKana(account.accountHolderNameKana || "")
+        setTransferFeeBearer(account.transferFeeBearer)
+        setBankAccountNotes(account.notes || "")
+        // Set bank/branch selection state
+        setSelectedBankId(account.bankId)
+        setSelectedBankDisplay(account.bankId && account.bankName ? `${account.bankName} (${account.bankCode})` : "")
+        setSelectedBranchId(account.bankBranchId)
+        setSelectedBranchDisplay(account.bankBranchId && account.branchName ? `${account.branchName} (${account.branchCode})` : "")
+      } else {
+        resetBankAccountForm()
+      }
+    } catch {
+      resetBankAccountForm()
+    }
+  }
+
+  const resetBankAccountForm = () => {
+    setBankAccount(null)
+    setAccountCategory("bank")
+    setAccountType("ordinary")
+    setAccountNo("")
+    setPostOfficeSymbol("")
+    setPostOfficeNumber("")
+    setAccountHolderName("")
+    setAccountHolderNameKana("")
+    setTransferFeeBearer("sender")
+    setBankAccountNotes("")
+    // Reset bank/branch selection state
+    setSelectedBankId(null)
+    setSelectedBankDisplay("")
+    setSelectedBranchId(null)
+    setSelectedBranchDisplay("")
+  }
+
+  const resetForm = () => {
+    setPayeeSubCode("")
+    setPayeeName("")
+    setPayeeNameKana("")
+    setPostalCode("")
+    setPrefecture("")
+    setCity("")
+    setAddressLine1("")
+    setAddressLine2("")
+    setPhone("")
+    setFax("")
+    setEmail("")
+    setContactName("")
+    setPaymentMethod("")
+    setCurrencyCode("JPY")
+    setPaymentTermsText("")
+    setIsActive(true)
+    setSelectedCompanyBankAccountId("")
+    resetBankAccountForm()
+  }
 
   const handlePayeeSubCodeChange = (value: string) => {
     const normalized = normalizeCode(value)
     setPayeeSubCode(normalized)
     if (errors.payeeSubCode) {
       setErrors({ ...errors, payeeSubCode: "" })
+    }
+  }
+
+  // Bank/Branch selection handlers
+  const handleBankSelect = (bank: BankSummary | null) => {
+    if (bank) {
+      setSelectedBankId(bank.id)
+      setSelectedBankDisplay(`${bank.bankName} (${bank.bankCode})`)
+    } else {
+      setSelectedBankId(null)
+      setSelectedBankDisplay("")
+    }
+    // Clear branch when bank changes
+    setSelectedBranchId(null)
+    setSelectedBranchDisplay("")
+    if (errors.bank) {
+      setErrors({ ...errors, bank: "" })
+    }
+  }
+
+  const handleBranchSelect = (branch: BranchSummary | null) => {
+    if (branch) {
+      setSelectedBranchId(branch.id)
+      setSelectedBranchDisplay(`${branch.branchName} (${branch.branchCode})`)
+    } else {
+      setSelectedBranchId(null)
+      setSelectedBranchDisplay("")
+    }
+    if (errors.branch) {
+      setErrors({ ...errors, branch: "" })
+    }
+  }
+
+  // Handle account category change - reset bank/branch when switching to post_office
+  const handleAccountCategoryChange = (value: AccountCategory) => {
+    setAccountCategory(value)
+    if (value === "post_office") {
+      setSelectedBankId(null)
+      setSelectedBankDisplay("")
+      setSelectedBranchId(null)
+      setSelectedBranchDisplay("")
     }
   }
 
@@ -202,6 +683,40 @@ export function PayeeDialog({
       newErrors.payeeName = "支払先名は必須です"
     }
 
+    // Bank account validation (if any bank field is filled)
+    const hasBankData = accountHolderName.trim() || accountNo.trim() || postOfficeSymbol.trim() || selectedBankId
+    if (hasBankData) {
+      if (!accountHolderName.trim()) {
+        newErrors.accountHolderName = "口座名義は必須です"
+      }
+      if (accountCategory === "bank" || accountCategory === "ja_bank") {
+        // Bank master selection is required
+        if (!selectedBankId) {
+          newErrors.bank = "銀行を選択してください"
+        }
+        if (!selectedBranchId) {
+          newErrors.branch = "支店を選択してください"
+        }
+        if (!accountNo.trim()) {
+          newErrors.accountNo = "口座番号は必須です"
+        } else if (!/^\d{7}$/.test(accountNo.trim())) {
+          newErrors.accountNo = "口座番号は7桁の数字で入力してください"
+        }
+      }
+      if (accountCategory === "post_office") {
+        if (!postOfficeSymbol.trim()) {
+          newErrors.postOfficeSymbol = "記号は必須です"
+        } else if (!/^\d{5}$/.test(postOfficeSymbol.trim())) {
+          newErrors.postOfficeSymbol = "記号は5桁の数字で入力してください"
+        }
+        if (!postOfficeNumber.trim()) {
+          newErrors.postOfficeNumber = "番号は必須です"
+        } else if (!/^\d{8}$/.test(postOfficeNumber.trim())) {
+          newErrors.postOfficeNumber = "番号は8桁の数字で入力してください"
+        }
+      }
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -213,6 +728,9 @@ export function PayeeDialog({
     setApiError(null)
 
     try {
+      let savedPayeeId = payee?.id
+
+      // Save payee
       if (isEdit && payee) {
         const request: UpdatePayeeRequest = {
           payeeName: payeeName.trim(),
@@ -229,6 +747,7 @@ export function PayeeDialog({
           paymentMethod: paymentMethod.trim() || undefined,
           currencyCode: currencyCode.trim() || undefined,
           paymentTermsText: paymentTermsText.trim() || undefined,
+          defaultCompanyBankAccountId: selectedCompanyBankAccountId || null,
           isActive,
           version: payee.version,
         }
@@ -251,9 +770,53 @@ export function PayeeDialog({
           paymentMethod: paymentMethod.trim() || undefined,
           currencyCode: currencyCode.trim() || undefined,
           paymentTermsText: paymentTermsText.trim() || undefined,
+          defaultCompanyBankAccountId: selectedCompanyBankAccountId || undefined,
         }
-        await bffClient.createPayee(request)
+        const result = await bffClient.createPayee(request)
+        savedPayeeId = result.payee.id
       }
+
+      // Save bank account if data is provided
+      const hasBankData = accountHolderName.trim()
+      if (hasBankData && savedPayeeId) {
+        if (bankAccount) {
+          // Update existing bank account
+          await bffClient.updatePayeeBankAccount(bankAccount.id, {
+            accountCategory,
+            bankId: selectedBankId || undefined,
+            bankBranchId: selectedBranchId || undefined,
+            accountType,
+            accountNo: accountNo.trim() || undefined,
+            postOfficeSymbol: postOfficeSymbol.trim() || undefined,
+            postOfficeNumber: postOfficeNumber.trim() || undefined,
+            accountHolderName: accountHolderName.trim(),
+            accountHolderNameKana: accountHolderNameKana.trim() || undefined,
+            transferFeeBearer,
+            isDefault: true,
+            isActive: true,
+            notes: bankAccountNotes.trim() || undefined,
+            version: bankAccount.version,
+          })
+        } else {
+          // Create new bank account
+          await bffClient.createPayeeBankAccount({
+            payeeId: savedPayeeId,
+            accountCategory,
+            bankId: selectedBankId || undefined,
+            bankBranchId: selectedBranchId || undefined,
+            accountType,
+            accountNo: accountNo.trim() || undefined,
+            postOfficeSymbol: postOfficeSymbol.trim() || undefined,
+            postOfficeNumber: postOfficeNumber.trim() || undefined,
+            accountHolderName: accountHolderName.trim(),
+            accountHolderNameKana: accountHolderNameKana.trim() || undefined,
+            transferFeeBearer,
+            isDefault: true,
+            notes: bankAccountNotes.trim() || undefined,
+          })
+        }
+      }
+
       onSuccess()
       onOpenChange(false)
     } catch (err: any) {
@@ -334,11 +897,143 @@ export function PayeeDialog({
               <Input label="通貨" value={currencyCode} onChange={setCurrencyCode} placeholder="例: JPY" />
             </div>
             <div className="mt-4">
+              <Select
+                label="デフォルト出金口座（自社口座）"
+                value={selectedCompanyBankAccountId}
+                onChange={(v: string) => setSelectedCompanyBankAccountId(v)}
+                options={[
+                  { value: "", label: loadingCompanyBankAccounts ? "読み込み中..." : "選択してください" },
+                  ...companyBankAccounts.map((account) => ({
+                    value: account.id,
+                    label: `${account.accountName} - ${account.bankName} ${account.branchName} (${account.accountNo})`,
+                  })),
+                ]}
+                disabled={loadingCompanyBankAccounts}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                この支払先への支払時に使用するデフォルトの出金口座を選択してください
+              </p>
+            </div>
+            <div className="mt-4">
               <Textarea
                 label="支払条件"
                 value={paymentTermsText}
                 onChange={setPaymentTermsText}
                 placeholder="例: 月末締め翌月末払い"
+              />
+            </div>
+          </div>
+
+          {/* Bank Account */}
+          <div>
+            <h3 className="text-sm font-bold mb-3">振込口座</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <Select
+                label="口座区分"
+                value={accountCategory}
+                onChange={(v: AccountCategory) => handleAccountCategoryChange(v)}
+                options={accountCategoryOptions}
+              />
+              <Select
+                label="振込手数料負担"
+                value={transferFeeBearer}
+                onChange={(v: TransferFeeBearer) => setTransferFeeBearer(v)}
+                options={transferFeeBearerOptions}
+              />
+            </div>
+
+            {/* Bank-specific fields with bank master integration */}
+            {(accountCategory === "bank" || accountCategory === "ja_bank") && (
+              <>
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <BankSuggestInput
+                    label="銀行"
+                    value={selectedBankId}
+                    displayValue={selectedBankDisplay}
+                    onSelect={handleBankSelect}
+                    placeholder="銀行名またはコードで検索"
+                    error={errors.bank}
+                    required
+                  />
+                  <BranchSuggestInput
+                    label="支店"
+                    bankId={selectedBankId}
+                    value={selectedBranchId}
+                    displayValue={selectedBranchDisplay}
+                    onSelect={handleBranchSelect}
+                    placeholder="支店名またはコードで検索"
+                    error={errors.branch}
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <Select
+                    label="口座種別"
+                    value={accountType}
+                    onChange={(v: AccountType) => setAccountType(v)}
+                    options={accountTypeOptions}
+                  />
+                  <Input
+                    label="口座番号"
+                    value={accountNo}
+                    onChange={setAccountNo}
+                    placeholder="7桁の数字"
+                    maxLength={7}
+                    error={errors.accountNo}
+                    required
+                  />
+                </div>
+              </>
+            )}
+
+            {/* Post office-specific fields */}
+            {accountCategory === "post_office" && (
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <Input
+                  label="記号"
+                  value={postOfficeSymbol}
+                  onChange={setPostOfficeSymbol}
+                  placeholder="5桁の数字"
+                  maxLength={5}
+                  error={errors.postOfficeSymbol}
+                  required
+                />
+                <Input
+                  label="番号"
+                  value={postOfficeNumber}
+                  onChange={setPostOfficeNumber}
+                  placeholder="8桁の数字"
+                  maxLength={8}
+                  error={errors.postOfficeNumber}
+                  required
+                />
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <Input
+                label="口座名義"
+                value={accountHolderName}
+                onChange={setAccountHolderName}
+                placeholder="例: カ）サンプルショウジ"
+                error={errors.accountHolderName}
+                required
+              />
+              <Input
+                label="口座名義カナ"
+                value={accountHolderNameKana}
+                onChange={setAccountHolderNameKana}
+                placeholder="例: カ）サンプルショウジ"
+              />
+            </div>
+
+            <div className="mt-4">
+              <Textarea
+                label="備考"
+                value={bankAccountNotes}
+                onChange={setBankAccountNotes}
+                placeholder="口座に関する備考"
+                rows={2}
               />
             </div>
           </div>

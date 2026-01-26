@@ -65,6 +65,12 @@
 | PUT | `/api/bff/master-data/business-partner/payees/:id` | Payee更新 | UpdatePayeeRequest | UpdatePayeeResponse | version（楽観ロック）必須 |
 | GET | `/api/bff/master-data/business-partner/customer-sites` | CustomerSite一覧取得 | ListCustomerSitesRequest | ListCustomerSitesResponse | 将来拡張（MVP-1では未実装） |
 | GET | `/api/bff/master-data/business-partner/ship-tos` | ShipTo一覧取得 | ListShipTosRequest | ListShipTosResponse | 将来拡張（MVP-1では未実装） |
+| GET | `/api/bff/master-data/business-partner/payees/:payeeId/bank-accounts` | PayeeBankAccount一覧取得 | ListPayeeBankAccountsRequest | ListPayeeBankAccountsResponse | payeeId でフィルタ |
+| POST | `/api/bff/master-data/business-partner/payees/:payeeId/bank-accounts` | PayeeBankAccount新規登録 | CreatePayeeBankAccountRequest | CreatePayeeBankAccountResponse | 銀行マスタ連携 |
+| PUT | `/api/bff/master-data/business-partner/payee-bank-accounts/:id` | PayeeBankAccount更新 | UpdatePayeeBankAccountRequest | UpdatePayeeBankAccountResponse | version（楽観ロック）必須 |
+| GET | `/api/bff/master-data/business-partner/banks/search` | 銀行検索（サジェスト用） | SearchBanksRequest | SearchBanksResponse | キーワード検索（銀行コード/銀行名） |
+| GET | `/api/bff/master-data/business-partner/banks/:bankId/branches/search` | 支店検索（サジェスト用） | SearchBranchesRequest | SearchBranchesResponse | bankId必須、キーワード検索 |
+| GET | `/api/bff/master-data/business-partner/company-bank-accounts` | 自社口座一覧取得 | ListCompanyBankAccountsRequest | ListCompanyBankAccountsResponse | isActive=trueのみ、Payee出金口座選択用 |
 
 **Naming Convention（必須）**
 - DTO / Contracts: camelCase（例: `partyCode`, `partyName`, `supplierCode`）
@@ -253,6 +259,11 @@ export const BusinessPartnerErrorCode = {
   SHIP_TO_NOT_FOUND: 'SHIP_TO_NOT_FOUND', // 404
   SHIP_TO_CODE_DUPLICATE: 'SHIP_TO_CODE_DUPLICATE', // 409
 
+  // PayeeBankAccount
+  PAYEE_BANK_ACCOUNT_NOT_FOUND: 'PAYEE_BANK_ACCOUNT_NOT_FOUND', // 404
+  BANK_NOT_FOUND: 'BANK_NOT_FOUND', // 404 (銀行マスタ参照エラー)
+  BANK_BRANCH_NOT_FOUND: 'BANK_BRANCH_NOT_FOUND', // 404 (支店マスタ参照エラー)
+
   // Common
   INVALID_CODE_LENGTH: 'INVALID_CODE_LENGTH', // 422
   REQUIRED_FIELD_MISSING: 'REQUIRED_FIELD_MISSING', // 422
@@ -307,6 +318,183 @@ export const BusinessPartnerErrorCode = {
 | 12.1-12.5 | 一覧取得・検索・ソート | BFF Paging正規化、Repository list メソッド | - | - |
 | 13.1-13.4 | Payee自動生成UI統合 | UI（Payee選択3択）、SupplierSiteService | - | Payee Auto-generation Flow |
 | 14.1-14.5 | エラーハンドリング・ユーザーフィードバック | 全Service（エラーコード返却） | BusinessPartnerErrorCode | - |
+| 15.1-15.10 | 支払先口座（PayeeBankAccount）マスタ管理 | PayeeBankAccountService, PayeeBankAccountRepository, BankSearchController | BFF: ListPayeeBankAccountsRequest/Response, CreatePayeeBankAccountRequest/Response, SearchBanksRequest/Response, SearchBranchesRequest/Response | Bank Master Integration Flow |
+| 16.1-16.6 | 支払先デフォルト出金口座設定 | PayeeService, PayeeRepository, CompanyBankAccountBffService | BFF: ListCompanyBankAccountsRequest/Response, PayeeDto (defaultCompanyBankAccountId追加) | - |
+
+---
+
+## UI Design
+
+### PayeeDialog 振込口座セクション（銀行マスタ連携）
+
+**Intent**: 支払先（Payee）登録画面内で振込口座情報を銀行マスタと連携して入力
+
+**UI構造**:
+```
+┌─ PayeeDialog ─────────────────────────────────────────────────┐
+│  [支払先基本情報セクション]                                       │
+│  ...                                                           │
+│                                                                │
+│  ┌─ 振込口座セクション ────────────────────────────────────────┐ │
+│  │                                                            │ │
+│  │  口座区分: [銀行 ▼] [ゆうちょ] [農協]   (RadioGroup)        │ │
+│  │                                                            │ │
+│  │  ── 銀行・農協選択時 ────────────────────────────────────  │ │
+│  │  銀行: [         🔍] (サジェスト入力)                       │ │
+│  │        → 入力中: "みずほ" → [みずほ銀行 (0001)] 候補表示     │ │
+│  │        → 選択後: "みずほ銀行 (0001)" + 🔒(bankId保持)        │ │
+│  │                                                            │ │
+│  │  支店: [         🔍] (サジェスト入力、銀行選択後有効化)       │ │
+│  │        → 入力中: "東京営業" → [東京営業部 (001)] 候補表示    │ │
+│  │        → 選択後: "東京営業部 (001)" + 🔒(branchId保持)       │ │
+│  │                                                            │ │
+│  │  ── ゆうちょ選択時 ─────────────────────────────────────   │ │
+│  │  記号: [      ] (5桁数字)                                   │ │
+│  │  番号: [        ] (8桁以内数字)                             │ │
+│  │                                                            │ │
+│  │  ── 共通 ───────────────────────────────────────────────  │ │
+│  │  口座種別: [普通 ▼]  口座番号: [        ]                   │ │
+│  │  口座名義: [                  ]                             │ │
+│  │  口座名義（カナ）: [                  ]                      │ │
+│  │  振込手数料負担: (●) 当方負担  ( ) 先方負担                  │ │
+│  │  備考: [                                        ]           │ │
+│  │                                                            │ │
+│  └────────────────────────────────────────────────────────────┘ │
+│                                                                │
+│  [キャンセル]                                    [保存]         │
+└────────────────────────────────────────────────────────────────┘
+```
+
+**UI Components**:
+
+| Component | Type | Description |
+| --------- | ---- | ----------- |
+| AccountCategorySelector | RadioGroup | 口座区分の選択（銀行/ゆうちょ/農協） |
+| BankSuggestInput | Combobox | 銀行名/コードによるサジェスト検索・選択 |
+| BranchSuggestInput | Combobox | 支店名/コードによるサジェスト検索・選択（銀行選択後有効化） |
+| PostOfficeInput | Input x2 | ゆうちょ記号・番号入力 |
+| AccountTypeSelect | Select | 口座種別（普通/当座/貯蓄/その他） |
+| AccountNoInput | Input | 口座番号入力 |
+| AccountHolderInput | Input x2 | 口座名義・カナ入力 |
+| TransferFeeBearerRadio | RadioGroup | 振込手数料負担者選択 |
+
+**Interaction Flow**:
+
+1. **口座区分選択**:
+   - 「銀行」「農協」選択時 → 銀行・支店サジェスト入力を表示
+   - 「ゆうちょ」選択時 → 記号・番号入力を表示
+
+2. **銀行サジェスト入力**:
+   - 2文字以上入力で API 呼び出し（debounce 300ms）
+   - `GET /api/bff/master-data/business-partner/banks/search?keyword={入力値}`
+   - 検索結果をドロップダウン表示（最大10件）
+   - 候補選択時に `bankId` を内部保持、表示は「銀行名 (銀行コード)」
+
+3. **支店サジェスト入力**:
+   - 銀行未選択時は disabled
+   - 銀行選択後に有効化、2文字以上入力で API 呼び出し
+   - `GET /api/bff/master-data/business-partner/banks/{bankId}/branches/search?keyword={入力値}`
+   - 候補選択時に `bankBranchId` を内部保持
+
+4. **フォーム送信**:
+   - 銀行・支店の `id` を送信（コード・名称は API 側で解決）
+   - Request: `{ payeeId, accountCategory: 'bank', bankId, bankBranchId, accountType, accountNo, ... }`
+
+**State Management（React Hook Form）**:
+```typescript
+interface PayeeBankAccountFormData {
+  accountCategory: 'bank' | 'post_office' | 'ja_bank';
+  bankId: string | null;           // 銀行マスタから選択したID
+  bankDisplayValue: string;        // 表示用（銀行名 + コード）
+  bankBranchId: string | null;     // 支店マスタから選択したID
+  branchDisplayValue: string;      // 表示用（支店名 + コード）
+  postOfficeSymbol: string;        // ゆうちょ記号
+  postOfficeNumber: string;        // ゆうちょ番号
+  accountType: 'ordinary' | 'current' | 'savings' | 'other';
+  accountNo: string;
+  accountHolderName: string;
+  accountHolderNameKana: string;
+  transferFeeBearer: 'sender' | 'recipient';
+  notes: string;
+}
+```
+
+**Validation Rules**:
+- 口座区分が銀行/農協の場合: bankId, bankBranchId 必須
+- 口座区分がゆうちょの場合: postOfficeSymbol（5桁）, postOfficeNumber（8桁以内）必須
+- 口座名義: 必須
+- 振込手数料負担: 必須
+
+**Error Handling（UI）**:
+- BANK_NOT_FOUND → 「選択した銀行が見つかりません。再度検索してください」
+- BANK_BRANCH_NOT_FOUND → 「選択した支店が見つかりません。再度検索してください」
+- PAYEE_BANK_ACCOUNT_NOT_FOUND → 「口座情報が見つかりません」
+
+---
+
+### PayeeDialog デフォルト出金口座セクション（Requirement 16）
+
+**Intent**: 支払先（Payee）に対して、支払時にデフォルトで使用する自社口座（出金口座）を設定
+
+**UI構造**:
+```
+┌─ PayeeDialog ─────────────────────────────────────────────────┐
+│  [支払先基本情報セクション]                                       │
+│  ...                                                           │
+│                                                                │
+│  ┌─ 支払設定セクション ─────────────────────────────────────────┐ │
+│  │                                                            │ │
+│  │  支払方法: [銀行振込 ▼]                                     │ │
+│  │  通貨: [JPY ▼]                                             │ │
+│  │  支払条件: [月末締め翌月末払い            ]                   │ │
+│  │                                                            │ │
+│  │  デフォルト出金口座: [                          ▼]          │ │
+│  │    └─ ドロップダウン候補:                                   │ │
+│  │        [（未設定）]                                         │ │
+│  │        [みずほ銀行 東京営業部 普通 1234567 本社口座]         │ │
+│  │        [三井住友銀行 新宿支店 普通 7654321 工場口座]         │ │
+│  │                                                            │ │
+│  └────────────────────────────────────────────────────────────┘ │
+│                                                                │
+│  [振込口座セクション]（支払先の口座）                              │
+│  ...                                                           │
+│                                                                │
+│  [キャンセル]                                    [保存]         │
+└────────────────────────────────────────────────────────────────┘
+```
+
+**UI Components**:
+
+| Component | Type | Description |
+| --------- | ---- | ----------- |
+| CompanyBankAccountSelect | Select | 自社口座マスタからの選択。isActive=trueのみ表示 |
+
+**Data Flow**:
+
+1. **一覧取得**:
+   - PayeeDialog マウント時に `GET /api/bff/master-data/business-partner/company-bank-accounts` 呼び出し
+   - isActive=true の自社口座一覧を取得
+   - ドロップダウン候補として表示
+
+2. **表示形式**:
+   - `{銀行名} {支店名} {口座種別} {口座番号} {口座名称}`
+   - 例: `みずほ銀行 東京営業部 普通 1234567 本社口座`
+
+3. **保存**:
+   - Payee 登録/更新時に `defaultCompanyBankAccountId` を送信
+   - 未選択の場合は null
+
+**State Management**:
+```typescript
+interface PayeeFormData {
+  // ... 既存フィールド
+  defaultCompanyBankAccountId: string | null;  // 選択した自社口座ID
+}
+```
+
+**Validation Rules**:
+- defaultCompanyBankAccountId は NULL許容（未設定可）
+- 選択された口座が isActive=false の場合はエラー表示
 
 ---
 
@@ -401,6 +589,10 @@ sequenceDiagram
 | BFF Controller | bff | UI向けエンドポイント提供 | 12.1-12.5 | Domain API Client | Service: ☑, API: ☑ |
 | BFF Service | bff | Paging正規化、DTO変換 | 12.1-12.5 | Domain API Client | Service: ☑ |
 | normalizeBusinessCode | common/utils | コード正規化ユーティリティ | 6.1-6.6 | - | - |
+| PayeeBankAccountController | master-data | PayeeBankAccount CRUD API提供 | 15.1-15.10 | PayeeBankAccountService | Service: ☑, API: ☑ |
+| PayeeBankAccountService | master-data | PayeeBankAccount ビジネスロジック、銀行マスタ連携 | 15.1-15.10 | PayeeBankAccountRepository, BankMasterService | Service: ☑ |
+| PayeeBankAccountRepository | master-data | PayeeBankAccount DBアクセス | 15.1-15.10, 9.1-9.5 | Prisma | - |
+| BankSearchController | bff | 銀行・支店サジェスト検索API | 15.4-15.6 | BankMasterAPI Client | Service: ☑, API: ☑ |
 
 ### Dependencies Table
 
@@ -411,6 +603,8 @@ sequenceDiagram
 | All Services | normalizeBusinessCode | Inbound | P0 | コード正規化のため必須 |
 | All Repositories | Prisma | External | P0 | ORM |
 | BFF | Domain API | External | P0 | HTTP Client経由 |
+| PayeeBankAccountService | BankMasterService | External | P0 | 銀行・支店情報取得のため必須 |
+| BankSearchController | BankMasterAPI | External | P0 | サジェスト検索のため必須 |
 
 ---
 
@@ -626,6 +820,144 @@ interface FindOrCreatePayeeData {
 - 存在しなければ create ロジックを実行し、payeeId を返す
   - 新規Payee作成時の `payee_sub_code` は SupplierSite の `supplier_sub_code` と同一値を使用
 - payee_code 生成（party_code + "-" + payee_sub_code）
+
+---
+
+### PayeeBankAccountController（Domain API）
+
+**Intent**: PayeeBankAccount（支払先口座）の CRUD API を提供。銀行マスタと連携し、銀行コード・支店コードの整合性を保証する。
+
+**Service Interface**:
+```typescript
+interface IPayeeBankAccountService {
+  listByPayee(params: ListPayeeBankAccountsParams): Promise<{ items: PayeeBankAccount[], total: number }>;
+  getById(id: string): Promise<PayeeBankAccount>;
+  create(data: CreatePayeeBankAccountData, userId: string): Promise<PayeeBankAccount>;
+  update(id: string, version: number, data: UpdatePayeeBankAccountData, userId: string): Promise<PayeeBankAccount>;
+}
+
+interface CreatePayeeBankAccountData {
+  tenantId: string;
+  payeeId: string;
+  accountCategory: 'bank' | 'post_office' | 'ja_bank';  // 銀行 / ゆうちょ / 農協
+  bankId?: string;         // 口座区分が bank/ja_bank の場合必須
+  bankBranchId?: string;   // 口座区分が bank/ja_bank の場合必須
+  postOfficeSymbol?: string;  // 口座区分が post_office の場合必須
+  postOfficeNumber?: string;  // 口座区分が post_office の場合必須
+  accountType: 'ordinary' | 'current' | 'savings' | 'other';  // 普通/当座/貯蓄/その他
+  accountNo?: string;
+  accountHolderName: string;
+  accountHolderNameKana?: string;
+  transferFeeBearer: 'sender' | 'recipient';  // 振込手数料負担者
+  isDefault?: boolean;
+  notes?: string;
+}
+
+interface UpdatePayeeBankAccountData {
+  accountCategory: 'bank' | 'post_office' | 'ja_bank';
+  bankId?: string;
+  bankBranchId?: string;
+  postOfficeSymbol?: string;
+  postOfficeNumber?: string;
+  accountType: 'ordinary' | 'current' | 'savings' | 'other';
+  accountNo?: string;
+  accountHolderName: string;
+  accountHolderNameKana?: string;
+  transferFeeBearer: 'sender' | 'recipient';
+  isDefault: boolean;
+  isActive: boolean;
+  notes?: string;
+}
+```
+
+**API Contracts**:
+- Request: `ListPayeeBankAccountsApiRequest`, `CreatePayeeBankAccountApiRequest`, `UpdatePayeeBankAccountApiRequest`
+- Response: `ListPayeeBankAccountsApiResponse`, `GetPayeeBankAccountApiResponse`, `CreatePayeeBankAccountApiResponse`, `UpdatePayeeBankAccountApiResponse`
+
+**Error Handling**:
+- PAYEE_BANK_ACCOUNT_NOT_FOUND（404）
+- PAYEE_NOT_FOUND（404）: 親Payeeが存在しない
+- BANK_NOT_FOUND（404）: bankId で指定された銀行が存在しない
+- BANK_BRANCH_NOT_FOUND（404）: bankBranchId で指定された支店が存在しない
+- CONCURRENT_UPDATE（409）: version 不一致
+
+**Implementation Notes**:
+- create/update 時に銀行マスタから銀行コード・銀行名、支店コード・支店名を自動取得してDB保存
+- 非正規化（denormalization）により、銀行マスタ変更後も口座登録時の情報を保持
+- isDefault=true で登録時、同一Payee配下の他の口座を isDefault=false に更新（同一トランザクション）
+- accountCategory='post_office' の場合、bankId/bankBranchId は null、代わりに postOfficeSymbol/postOfficeNumber を使用
+
+**Bank Master Integration Flow**:
+```mermaid
+sequenceDiagram
+    participant UI
+    participant BFF
+    participant PayeeBankAccountService
+    participant BankMasterService
+    participant DB
+
+    UI->>BFF: POST /payees/:payeeId/bank-accounts (bankId, bankBranchId)
+    BFF->>PayeeBankAccountService: create(data, userId, tenantId)
+
+    alt accountCategory = 'bank' or 'ja_bank'
+        PayeeBankAccountService->>BankMasterService: getBank(bankId)
+        BankMasterService-->>PayeeBankAccountService: { bankCode, bankName }
+        PayeeBankAccountService->>BankMasterService: getBranch(bankBranchId)
+        BankMasterService-->>PayeeBankAccountService: { branchCode, branchName }
+    end
+
+    PayeeBankAccountService->>DB: INSERT INTO payee_bank_accounts (bankId, bankCode, bankName, branchCode, branchName, ...)
+    DB-->>PayeeBankAccountService: PayeeBankAccount
+
+    PayeeBankAccountService-->>BFF: PayeeBankAccount
+    BFF-->>UI: CreatePayeeBankAccountResponse
+```
+
+---
+
+### BankSearchController（BFF）
+
+**Intent**: PayeeBankAccount登録時の銀行・支店選択のためのサジェスト検索API
+
+**Service Interface**:
+```typescript
+interface IBankSearchService {
+  searchBanks(params: SearchBanksParams): Promise<{ items: BankSummary[], total: number }>;
+  searchBranches(params: SearchBranchesParams): Promise<{ items: BranchSummary[], total: number }>;
+}
+
+interface SearchBanksParams {
+  tenantId: string;
+  keyword: string;  // 銀行コード前方一致 or 銀行名部分一致
+  limit?: number;   // default 10
+}
+
+interface SearchBranchesParams {
+  tenantId: string;
+  bankId: string;   // 必須（銀行選択後）
+  keyword: string;  // 支店コード前方一致 or 支店名部分一致
+  limit?: number;   // default 10
+}
+
+interface BankSummary {
+  id: string;
+  bankCode: string;
+  bankName: string;
+  bankNameKana: string;
+}
+
+interface BranchSummary {
+  id: string;
+  branchCode: string;
+  branchName: string;
+  branchNameKana: string;
+}
+```
+
+**Implementation Notes**:
+- 銀行マスタ（bank-master）のAPIを内部呼び出し
+- 検索結果は最大10件（limit）に制限
+- キーワードが空の場合は検索しない（フロント側で制御）
 
 ---
 
@@ -957,6 +1289,7 @@ model Payee {
   currencyCode            String?        @map("currency_code")
   paymentTermsText        String?        @map("payment_terms_text")
   defaultPaymentTermId    String?        @map("default_payment_term_id")
+  defaultCompanyBankAccountId String?    @map("default_company_bank_account_id")  // FK to company_bank_accounts（出金口座）
   isActive                Boolean        @default(true) @map("is_active")
   notes                   String?
   version                 Int            @default(1)
@@ -965,8 +1298,9 @@ model Payee {
   createdByLoginAccountId String?        @map("created_by_login_account_id")
   updatedByLoginAccountId String?        @map("updated_by_login_account_id")
 
-  party                   Party          @relation(fields: [tenantId, partyId], references: [tenantId, id])
+  party                   Party                @relation(fields: [tenantId, partyId], references: [tenantId, id])
   supplierSites           SupplierSite[]
+  bankAccounts            PayeeBankAccount[]
 
   @@unique([tenantId, partyId, payeeSubCode])
   @@unique([tenantId, payeeCode])
@@ -976,6 +1310,41 @@ model Payee {
 }
 
 // CustomerSite / ShipTo は MVP-1 では未実装
+
+model PayeeBankAccount {
+  id                      String    @id @default(uuid())
+  tenantId                String    @map("tenant_id")
+  payeeId                 String    @map("payee_id")
+  accountCategory         String    @map("account_category")  // 'bank' | 'post_office' | 'ja_bank'
+  bankId                  String?   @map("bank_id")           // 銀行マスタへの参照（非正規化のため削除されても残る）
+  bankBranchId            String?   @map("bank_branch_id")    // 支店マスタへの参照
+  bankCode                String?   @map("bank_code")         // 非正規化: 登録時の銀行コード
+  bankName                String?   @map("bank_name")         // 非正規化: 登録時の銀行名
+  branchCode              String?   @map("branch_code")       // 非正規化: 登録時の支店コード
+  branchName              String?   @map("branch_name")       // 非正規化: 登録時の支店名
+  postOfficeSymbol        String?   @map("post_office_symbol")  // ゆうちょ記号（5桁）
+  postOfficeNumber        String?   @map("post_office_number")  // ゆうちょ番号（8桁以内）
+  accountType             String    @map("account_type")      // 'ordinary' | 'current' | 'savings' | 'other'
+  accountNo               String?   @map("account_no")
+  accountHolderName       String    @map("account_holder_name")
+  accountHolderNameKana   String?   @map("account_holder_name_kana")
+  transferFeeBearer       String    @map("transfer_fee_bearer")  // 'sender' | 'recipient'
+  isDefault               Boolean   @default(false) @map("is_default")
+  isActive                Boolean   @default(true) @map("is_active")
+  notes                   String?
+  version                 Int       @default(1)
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  createdByLoginAccountId String?   @map("created_by_login_account_id")
+  updatedByLoginAccountId String?   @map("updated_by_login_account_id")
+
+  payee                   Payee     @relation(fields: [tenantId, payeeId], references: [tenantId, id])
+
+  @@unique([tenantId, payeeId, id])
+  @@index([tenantId, payeeId])
+  @@index([tenantId, isActive])
+  @@map("payee_bank_accounts")
+}
 ```
 
 **Indexing Strategy**:

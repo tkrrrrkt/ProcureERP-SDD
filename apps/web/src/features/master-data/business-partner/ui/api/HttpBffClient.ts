@@ -21,6 +21,18 @@ import type {
   CreatePayeeResponse,
   UpdatePayeeRequest,
   UpdatePayeeResponse,
+  ListPayeeBankAccountsRequest,
+  ListPayeeBankAccountsResponse,
+  CreatePayeeBankAccountRequest,
+  CreatePayeeBankAccountResponse,
+  UpdatePayeeBankAccountRequest,
+  UpdatePayeeBankAccountResponse,
+  SearchBanksRequest,
+  SearchBanksResponse,
+  SearchBranchesRequest,
+  SearchBranchesResponse,
+  ListCompanyBankAccountsRequest,
+  ListCompanyBankAccountsResponse,
 } from "../types/bff-contracts"
 
 // TODO: Use environment variable or config for BFF base URL
@@ -113,5 +125,41 @@ export class HttpBffClient implements BffClient {
 
   async updatePayee(id: string, request: UpdatePayeeRequest): Promise<UpdatePayeeResponse> {
     return this.request<UpdatePayeeResponse>("PUT", `/payees/${id}`, request)
+  }
+
+  // Payee Bank Account methods
+  async listPayeeBankAccounts(request: ListPayeeBankAccountsRequest): Promise<ListPayeeBankAccountsResponse> {
+    return this.request<ListPayeeBankAccountsResponse>("GET", `/payees/${request.payeeId}/bank-accounts`, undefined, { isActive: request.isActive })
+  }
+
+  async createPayeeBankAccount(request: CreatePayeeBankAccountRequest): Promise<CreatePayeeBankAccountResponse> {
+    const { payeeId, ...body } = request
+    return this.request<CreatePayeeBankAccountResponse>("POST", `/payees/${payeeId}/bank-accounts`, body)
+  }
+
+  async updatePayeeBankAccount(id: string, request: UpdatePayeeBankAccountRequest): Promise<UpdatePayeeBankAccountResponse> {
+    return this.request<UpdatePayeeBankAccountResponse>("PUT", `/payee-bank-accounts/${id}`, request)
+  }
+
+  // Bank / Branch Search methods
+  async searchBanks(request: SearchBanksRequest): Promise<SearchBanksResponse> {
+    return this.request<SearchBanksResponse>("GET", "/banks/search", undefined, {
+      keyword: request.keyword,
+      limit: request.limit,
+    })
+  }
+
+  async searchBranches(request: SearchBranchesRequest): Promise<SearchBranchesResponse> {
+    return this.request<SearchBranchesResponse>("GET", `/banks/${request.bankId}/branches/search`, undefined, {
+      keyword: request.keyword,
+      limit: request.limit,
+    })
+  }
+
+  // Company Bank Account methods (for 出金口座選択)
+  async listCompanyBankAccounts(request: ListCompanyBankAccountsRequest): Promise<ListCompanyBankAccountsResponse> {
+    return this.request<ListCompanyBankAccountsResponse>("GET", "/company-bank-accounts", undefined, {
+      isActive: request.isActive,
+    })
   }
 }

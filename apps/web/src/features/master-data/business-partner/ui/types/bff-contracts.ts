@@ -1,47 +1,66 @@
-// BFF DTO types (normally imported from packages/contracts/src/bff)
-// These should be imported from @contracts/bff/business-partner in production
+// BFF DTO types - re-exported from @contracts/bff/business-partner
+// This file maps the shared contracts to the local feature
+export type {
+  SortOrder,
+  PartySortBy,
+  SupplierSiteSortBy,
+  PayeeSortBy,
+  PartyDto,
+  SupplierSiteDto,
+  PayeeDto,
+  ListPartiesRequest,
+  ListPartiesResponse,
+  GetPartyResponse,
+  CreatePartyRequest,
+  CreatePartyResponse,
+  UpdatePartyRequest,
+  UpdatePartyResponse,
+  ListSupplierSitesRequest,
+  ListSupplierSitesResponse,
+  GetSupplierSiteResponse,
+  CreateSupplierSiteRequest,
+  CreateSupplierSiteResponse,
+  UpdateSupplierSiteRequest,
+  UpdateSupplierSiteResponse,
+  ListPayeesRequest,
+  ListPayeesResponse,
+  GetPayeeResponse,
+  CreatePayeeRequest,
+  CreatePayeeResponse,
+  UpdatePayeeRequest,
+  UpdatePayeeResponse,
+  BusinessPartnerErrorCode,
+  BusinessPartnerError,
+} from "@contracts/bff/business-partner"
 
-export type SortOrder = "asc" | "desc"
+// =============================================================================
+// Payee Bank Account (from payee-bank-account feature)
+// =============================================================================
 
-export type PartySortBy = "partyCode" | "partyName" | "partyNameKana" | "isSupplier" | "isCustomer" | "isActive"
+export type AccountCategory = "bank" | "post_office" | "ja_bank"
+export type AccountType = "ordinary" | "current" | "savings" | "other"
+export type TransferFeeBearer = "sender" | "recipient"
 
-export interface PartyDto {
+export interface PayeeBankAccountDto {
   id: string
-  partyCode: string
-  partyName: string
-  partyNameKana: string | null
-  isSupplier: boolean
-  isCustomer: boolean
-  isActive: boolean
-  remarks: string | null
-  version: number
-  createdAt: string
-  updatedAt: string
-  createdBy: string | null
-  updatedBy: string | null
-}
-
-export interface SupplierSiteDto {
-  id: string
-  partyId: string
-  supplierSubCode: string
-  supplierCode: string
-  supplierName: string
-  supplierNameKana: string | null
   payeeId: string
-  // Payee reference info (for display)
-  payeeCode: string
-  payeeName: string
-  postalCode: string | null
-  prefecture: string | null
-  city: string | null
-  addressLine1: string | null
-  addressLine2: string | null
-  phone: string | null
-  fax: string | null
-  email: string | null
-  contactName: string | null
+  accountCategory: AccountCategory
+  bankId: string | null
+  bankBranchId: string | null
+  bankCode: string | null
+  bankName: string | null
+  branchCode: string | null
+  branchName: string | null
+  postOfficeSymbol: string | null
+  postOfficeNumber: string | null
+  accountType: AccountType
+  accountNo: string | null
+  accountHolderName: string
+  accountHolderNameKana: string | null
+  transferFeeBearer: TransferFeeBearer
+  isDefault: boolean
   isActive: boolean
+  notes: string | null
   version: number
   createdAt: string
   updatedAt: string
@@ -49,225 +68,123 @@ export interface SupplierSiteDto {
   updatedBy: string | null
 }
 
-export interface PayeeDto {
+export interface ListPayeeBankAccountsRequest {
+  payeeId: string
+  isActive?: boolean
+}
+
+export interface ListPayeeBankAccountsResponse {
+  items: PayeeBankAccountDto[]
+  total: number
+}
+
+export interface CreatePayeeBankAccountRequest {
+  payeeId: string
+  accountCategory: AccountCategory
+  bankId?: string
+  bankBranchId?: string
+  postOfficeSymbol?: string
+  postOfficeNumber?: string
+  accountType: AccountType
+  accountNo?: string
+  accountHolderName: string
+  accountHolderNameKana?: string
+  transferFeeBearer: TransferFeeBearer
+  isDefault?: boolean
+  notes?: string
+}
+
+export interface CreatePayeeBankAccountResponse {
+  account: PayeeBankAccountDto
+}
+
+export interface UpdatePayeeBankAccountRequest {
+  accountCategory: AccountCategory
+  bankId?: string
+  bankBranchId?: string
+  postOfficeSymbol?: string
+  postOfficeNumber?: string
+  accountType: AccountType
+  accountNo?: string
+  accountHolderName: string
+  accountHolderNameKana?: string
+  transferFeeBearer: TransferFeeBearer
+  isDefault: boolean
+  isActive: boolean
+  notes?: string
+  version: number
+}
+
+export interface UpdatePayeeBankAccountResponse {
+  account: PayeeBankAccountDto
+}
+
+// =============================================================================
+// Bank / Branch Search (for PayeeBankAccount registration)
+// =============================================================================
+
+export interface BankSummary {
   id: string
-  partyId: string
-  payeeSubCode: string
-  payeeCode: string
-  payeeName: string
-  payeeNameKana: string | null
-  postalCode: string | null
-  prefecture: string | null
-  city: string | null
-  addressLine1: string | null
-  addressLine2: string | null
-  phone: string | null
-  fax: string | null
-  email: string | null
-  contactName: string | null
-  paymentMethod: string | null
-  currencyCode: string | null
-  paymentTermsText: string | null
+  bankCode: string
+  bankName: string
+  bankNameKana: string | null
+}
+
+export interface BranchSummary {
+  id: string
+  branchCode: string
+  branchName: string
+  branchNameKana: string | null
+}
+
+export interface SearchBanksRequest {
+  keyword: string
+  limit?: number
+}
+
+export interface SearchBanksResponse {
+  items: BankSummary[]
+  total: number
+}
+
+export interface SearchBranchesRequest {
+  bankId: string
+  keyword: string
+  limit?: number
+}
+
+export interface SearchBranchesResponse {
+  items: BranchSummary[]
+  total: number
+}
+
+// =============================================================================
+// Company Bank Account (自社口座 - for 出金口座選択)
+// =============================================================================
+
+export interface CompanyBankAccountSummary {
+  id: string
+  accountName: string
+  bankName: string
+  branchName: string
+  accountNo: string
   isActive: boolean
-  version: number
-  createdAt: string
-  updatedAt: string
-  createdBy: string | null
-  updatedBy: string | null
 }
 
-export interface ListPartiesRequest {
-  page?: number
-  pageSize?: number
-  sortBy?: PartySortBy
-  sortOrder?: SortOrder
-  keyword?: string
-  isSupplier?: boolean
-  isCustomer?: boolean
+export interface ListCompanyBankAccountsRequest {
+  isActive?: boolean
 }
 
-export interface ListPartiesResponse {
-  items: PartyDto[]
-  page: number
-  pageSize: number
+export interface ListCompanyBankAccountsResponse {
+  items: CompanyBankAccountSummary[]
   total: number
-  totalPages: number
 }
 
-export interface GetPartyResponse {
-  party: PartyDto
-}
+// =============================================================================
+// Error Types (alias)
+// =============================================================================
 
-export interface CreatePartyRequest {
-  partyCode: string
-  partyName: string
-  partyNameKana?: string
-  remarks?: string
-  isActive?: boolean
-}
-
-export interface CreatePartyResponse {
-  party: PartyDto
-}
-
-export interface UpdatePartyRequest {
-  partyName: string
-  partyNameKana?: string
-  remarks?: string
-  isActive?: boolean
-  version: number
-}
-
-export interface UpdatePartyResponse {
-  party: PartyDto
-}
-
-export interface ListSupplierSitesRequest {
-  partyId: string
-  page?: number
-  pageSize?: number
-  sortBy?: string
-  sortOrder?: SortOrder
-  keyword?: string
-}
-
-export interface ListSupplierSitesResponse {
-  items: SupplierSiteDto[]
-  page: number
-  pageSize: number
-  total: number
-  totalPages: number
-}
-
-export interface GetSupplierSiteResponse {
-  supplierSite: SupplierSiteDto
-}
-
-export interface CreateSupplierSiteRequest {
-  partyId: string
-  supplierSubCode: string
-  supplierName: string
-  supplierNameKana?: string
-  payeeId?: string
-  payeeSubCode?: string
-  payeeName?: string
-  payeeNameKana?: string
-  postalCode?: string
-  prefecture?: string
-  city?: string
-  addressLine1?: string
-  addressLine2?: string
-  phone?: string
-  fax?: string
-  email?: string
-  contactName?: string
-  paymentMethod?: string
-  currencyCode?: string
-  paymentTermsText?: string
-}
-
-export interface CreateSupplierSiteResponse {
-  supplierSite: SupplierSiteDto
-}
-
-export interface UpdateSupplierSiteRequest {
-  supplierName: string
-  supplierNameKana?: string
-  payeeId?: string // Allow changing payee association
-  postalCode?: string
-  prefecture?: string
-  city?: string
-  addressLine1?: string
-  addressLine2?: string
-  phone?: string
-  fax?: string
-  email?: string
-  contactName?: string
-  isActive?: boolean
-  version: number
-}
-
-export interface UpdateSupplierSiteResponse {
-  supplierSite: SupplierSiteDto
-}
-
-export interface ListPayeesRequest {
-  partyId: string
-  page?: number
-  pageSize?: number
-  sortBy?: string
-  sortOrder?: SortOrder
-  keyword?: string
-}
-
-export interface ListPayeesResponse {
-  items: PayeeDto[]
-  page: number
-  pageSize: number
-  total: number
-  totalPages: number
-}
-
-export interface GetPayeeResponse {
-  payee: PayeeDto
-}
-
-export interface CreatePayeeRequest {
-  partyId: string
-  payeeSubCode: string
-  payeeName: string
-  payeeNameKana?: string
-  postalCode?: string
-  prefecture?: string
-  city?: string
-  addressLine1?: string
-  addressLine2?: string
-  phone?: string
-  fax?: string
-  email?: string
-  contactName?: string
-  paymentMethod?: string
-  currencyCode?: string
-  paymentTermsText?: string
-}
-
-export interface CreatePayeeResponse {
-  payee: PayeeDto
-}
-
-export interface UpdatePayeeRequest {
-  payeeName: string
-  payeeNameKana?: string
-  postalCode?: string
-  prefecture?: string
-  city?: string
-  addressLine1?: string
-  addressLine2?: string
-  phone?: string
-  fax?: string
-  email?: string
-  contactName?: string
-  paymentMethod?: string
-  currencyCode?: string
-  paymentTermsText?: string
-  isActive?: boolean
-  version: number
-}
-
-export interface UpdatePayeeResponse {
-  payee: PayeeDto
-}
-
-export type BffErrorCode =
-  | "PARTY_NOT_FOUND"
-  | "PARTY_CODE_DUPLICATE"
-  | "SUPPLIER_SITE_NOT_FOUND"
-  | "SUPPLIER_CODE_DUPLICATE"
-  | "PAYEE_NOT_FOUND"
-  | "PAYEE_CODE_DUPLICATE"
-  | "INVALID_CODE_LENGTH"
-  | "REQUIRED_FIELD_MISSING"
-  | "CONCURRENT_UPDATE"
+export type BffErrorCode = import("@contracts/bff/business-partner").BusinessPartnerErrorCode
 
 export interface BffError {
   code: BffErrorCode

@@ -201,3 +201,33 @@ master-data/business-partner
 3. When 楽観ロック競合が発生した時、Business Partner ServiceはCONCURRENT_UPDATEエラーを返す
 4. When 必須項目が未入力の場合、Business Partner ServiceはREQUIRED_FIELD_MISSINGエラーを返す
 5. The Business Partner Serviceはエラーレスポンスに`code` / `message` / `details`を含め、UIで適切な表示を可能にする
+
+### Requirement 15: 支払先口座（PayeeBankAccount）マスタ管理
+
+**Objective:** 経理担当者として、支払先の振込口座情報を銀行マスタと連携して登録・管理し、口座番号・銀行コードの入力ミスを防止することで、振込エラーを削減する
+
+#### Acceptance Criteria
+
+1. When 経理担当者がPayee登録画面の振込口座セクションを開いた時、Business Partner Serviceは口座区分（銀行/ゆうちょ/農協）を選択可能なフォームを表示する
+2. When 口座区分が「銀行」または「農協」の場合、Business Partner Serviceは銀行マスタから銀行を選択するサジェスト入力フィールドを表示する
+3. When 銀行が選択された時、Business Partner Serviceは該当銀行の支店マスタから支店を選択するサジェスト入力フィールドを表示する
+4. When 銀行・支店が選択された時、Business Partner Serviceはbankコード（4桁）・branchコード（3桁）・銀行名・支店名を自動設定する
+5. When 口座区分が「ゆうちょ」の場合、Business Partner Serviceは記号（5桁）・番号（8桁）入力フィールドを表示する
+6. When PayeeBankAccountを登録する時、Business Partner Serviceは口座名義（accountHolderName）を必須とする
+7. When PayeeBankAccountを登録する時、Business Partner Serviceは振込手数料負担区分（当社負担/先方負担）を必須とする
+8. When 同一Payeeに複数の口座が存在する場合、Business Partner Serviceは既定口座（isDefault=true）を1つのみ許可する
+9. When 既定口座が変更された時、Business Partner Serviceは以前の既定口座のisDefaultフラグをfalseに更新する
+10. When PayeeBankAccountを検索する時、Business Partner ServiceはBank/BranchのisActive=falseのレコードを選択候補から除外する
+
+### Requirement 16: 支払先デフォルト出金口座設定
+
+**Objective:** 経理担当者として、支払先ごとにデフォルトの出金口座（自社口座）を設定し、支払データ作成時の出金元口座を自動設定することで、支払業務の効率化と入力ミス防止を実現する
+
+#### Acceptance Criteria
+
+1. When 経理担当者がPayee登録・編集画面を開いた時、Business Partner Serviceはデフォルト出金口座選択フィールドを表示する
+2. When デフォルト出金口座を選択する時、Business Partner Serviceは自社口座マスタ（CompanyBankAccount）のisActive=trueのレコードを候補として表示する
+3. When Payeeを登録・更新する時、Business Partner Serviceはdefault_company_bank_account_idを保存する
+4. When 選択された自社口座が論理削除（isActive=false）された場合、Business Partner Serviceは既存の紐づけを維持するが、新規選択候補からは除外する
+5. The Business Partner Serviceはdefault_company_bank_account_idをNULL許容とし、未設定の場合は支払データ作成時に手動選択を要求する
+6. When Payee一覧・詳細を表示する時、Business Partner Serviceはデフォルト出金口座の口座名・銀行名を表示する
