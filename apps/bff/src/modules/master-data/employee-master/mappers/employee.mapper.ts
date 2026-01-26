@@ -36,6 +36,8 @@ export class EmployeeMapper {
       version: apiDto.version,
       createdAt: apiDto.createdAt,
       updatedAt: apiDto.updatedAt,
+      createdBy: apiDto.createdBy,
+      updatedBy: apiDto.updatedBy,
     };
   }
 
